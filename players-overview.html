@@ -68,6 +68,12 @@
             max-width: 200px;
         }
 
+        .availability-heatmap:hover {
+            opacity: 0.8;
+            transform: scale(1.05);
+            transition: all 0.2s;
+        }
+
         .heatmap-cell {
             aspect-ratio: 1;
             border-radius: 3px;
@@ -422,7 +428,7 @@
                     : 'Unknown';
 
                 // Create heatmap
-                let heatmapHTML = '<div class="availability-heatmap">';
+                let heatmapHTML = '<div class="availability-heatmap" onclick="showPlayerAvailabilityDetails(\'' + player.name.replace(/'/g, "\\'") + '\')" style="cursor: pointer;" title="Click to see detailed schedule">';
                 DAYS.forEach(day => {
                     const hours = dayHours[day];
                     let cellClass = 'empty';
@@ -504,6 +510,141 @@
             
             renderStats();
             renderPlayersTable();
+        }
+
+        function showPlayerAvailabilityDetails(playerName) {
+            const players = loadPlayers();
+            const player = players[playerName];
+            
+            if (!player) {
+                alert('Player not found!');
+                return;
+            }
+
+            // Build detailed schedule view
+            let scheduleHTML = '<div style="display: flex; flex-direction: column; gap: 15px;">';
+            
+            DAYS.forEach(day => {
+                const serverHours = player.availability[day] || [];
+                
+                if (serverHours.length === 0) {
+                    scheduleHTML += `
+                        <div style="background: var(--bg-secondary); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="font-weight: bold; color: var(--text-primary); margin-bottom: 5px;">${day}</div>
+                            <div style="color: var(--text-secondary); font-style: italic;">Not available</div>
+                        </div>
+                    `;
+                } else {
+                    // Convert server hours to local hours and sort
+                    const localHours = serverHours.map(sh => ({
+                        server: sh,
+                        local: getLocalHourFromServerHour(sh)
+                    })).sort((a, b) => a.local - b.local);
+                    
+                    // Group consecutive hours
+                    const timeRanges = [];
+                    if (localHours.length > 0) {
+                        let start = localHours[0];
+                        let end = localHours[0];
+                        
+                        for (let i = 1; i < localHours.length; i++) {
+                            if (localHours[i].local === (end.local + 1) % 24) {
+                                end = localHours[i];
+                            } else {
+                                timeRanges.push({ start, end });
+                                start = localHours[i];
+                                end = localHours[i];
+                            }
+                        }
+                        timeRanges.push({ start, end });
+                    }
+                    
+                    const rangeStrings = timeRanges.map(range => {
+                        const localStart = String(range.start.local).padStart(2, '0') + ':00';
+                        const localEnd = String((range.end.local + 1) % 24).padStart(2, '0') + ':00';
+                        const serverStart = String(range.start.server).padStart(2, '0') + ':00';
+                        const serverEnd = String((range.end.server + 1) % 24).padStart(2, '0') + ':00';
+                        return `${localStart} - ${localEnd} <span style="color: var(--text-tertiary); font-size: 0.85em;">(${serverStart} - ${serverEnd} ST)</span>`;
+                    });
+                    
+                    scheduleHTML += `
+                        <div style="background: var(--bg-secondary); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="font-weight: bold; color: var(--text-primary); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                                <span>${day}</span>
+                                <span style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85em;">
+                                    ${serverHours.length}h
+                                </span>
+                            </div>
+                            <div style="color: var(--text-secondary); line-height: 1.6;">
+                                ${rangeStrings.join('<br>')}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            scheduleHTML += '</div>';
+
+            // Calculate total hours and most active info
+            let totalHours = 0;
+            const dayHours = {};
+            DAYS.forEach(day => {
+                const hours = player.availability[day] || [];
+                dayHours[day] = hours.length;
+                totalHours += hours.length;
+            });
+            const mostActiveDay = Object.keys(dayHours).reduce((a, b) => 
+                dayHours[a] > dayHours[b] ? a : b
+            );
+
+            // Create the modal
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-popup" style="max-width: 600px;">
+                    <button class="modal-close-btn" onclick="this.closest('.modal-overlay').remove()">×</button>
+                    <h3 style="color: var(--text-primary); margin-bottom: 20px;">
+                        📅 ${player.name}'s Weekly Schedule
+                    </h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px;">
+                        <div style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; text-align: center; border: 2px solid var(--border-color);">
+                            <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 5px;">Class</div>
+                            <div style="font-size: 1.3em; font-weight: bold; color: var(--text-primary);">${player.class}</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; text-align: center; border: 2px solid var(--border-color);">
+                            <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 5px;">Gear Score</div>
+                            <div style="font-size: 1.3em; font-weight: bold; color: var(--text-primary);">${player.gearScore}</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); padding: 15px; border-radius: 10px; text-align: center;">
+                            <div style="font-size: 0.9em; color: rgba(255,255,255,0.9); margin-bottom: 5px;">Total Hours</div>
+                            <div style="font-size: 1.3em; font-weight: bold; color: white;">${totalHours}h</div>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; color: var(--text-primary);">
+                        <strong>Most Active:</strong> ${mostActiveDay} (${dayHours[mostActiveDay]} hours)
+                    </div>
+
+                    <h4 style="color: var(--text-primary); margin-bottom: 15px; font-size: 1.1em;">Detailed Availability:</h4>
+                    <div style="max-height: 400px; overflow-y: auto; padding-right: 10px;">
+                        ${scheduleHTML}
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; text-align: center; color: var(--text-secondary); font-size: 0.9em;">
+                        Times shown in your selected timezone • ST = Server Time
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Close modal on overlay click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
         }
 
         // Timezone functions

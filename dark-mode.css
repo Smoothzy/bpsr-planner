@@ -210,8 +210,7 @@ body {
 }
 
 #syncStatusText {
-    /* Use variable so it matches theme */
-    color: var(--text-primary);
+    color: var(--input-bg);
 }
 
 .detailed-schedule {
