@@ -171,6 +171,94 @@ body {
 }
 
 /* Modal styles for dark mode */
+.modal-content {
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+
+.stat-card {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+}
+
+.stat-label {
+    color: var(--text-secondary);
+}
+
+.stat-value {
+    color: var(--text-primary);
+}
+
+.detailed-schedule {
+    background: var(--bg-secondary);
+}
+
+.schedule-row {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+}
+
+.schedule-day {
+    color: var(--text-primary);
+}
+
+.schedule-times {
+    color: var(--text-secondary);
+}
+
+.server-time-small {
+    color: var(--text-tertiary);
+}
+
+/* Light mode overrides for modal */
+body.light-mode .modal-content {
+    background: #ffffff;
+    color: #1e293b;
+}
+
+body.light-mode .modal-body {
+    background: #ffffff;
+}
+
+body.light-mode .stat-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px solid #dee2e6;
+}
+
+body.light-mode .stat-label {
+    color: #666;
+}
+
+body.light-mode .stat-value {
+    color: #1e293b;
+}
+
+body.light-mode .detailed-schedule {
+    background: #f8f9fa;
+}
+
+body.light-mode .schedule-row {
+    background: white;
+    border: 1px solid #dee2e6;
+}
+
+body.light-mode .schedule-day {
+    color: #1e293b;
+}
+
+body.light-mode .schedule-times {
+    color: #666;
+}
+
+body.light-mode .server-time-small {
+    color: #999;
+}
+
 .modal-overlay {
     position: fixed;
     top: 0;

@@ -469,10 +469,6 @@ function renderPlayersList() {
             </div>
             <div class="player-info">
                 <div class="player-info-row">
-                    <span class="player-info-label">⚔️ Class:</span>
-                    <span class="player-info-value">${player.class}</span>
-                </div>
-                <div class="player-info-row">
                     <span class="player-info-label">📊 Gear Score:</span>
                     <span class="player-info-value">${player.gearScore}</span>
                 </div>
@@ -1034,18 +1030,24 @@ function init() {
 // Start the application
 init();
 
-// Dark mode toggle
+// Dark mode toggle (Default is dark, toggle to light)
 function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
-    const isDark = document.body.classList.contains('dark-mode');
-    localStorage.setItem('darkMode', isDark);
-    document.querySelector('.dark-mode-toggle').textContent = isDark ? '☀️' : '🌙';
+    document.body.classList.toggle('light-mode');
+    const isLight = document.body.classList.contains('light-mode');
+    localStorage.setItem('lightMode', isLight);
+    const toggle = document.querySelector('.dark-mode-toggle');
+    if (toggle) {
+        toggle.textContent = isLight ? '🌙' : '☀️';
+        toggle.title = isLight ? 'Toggle Dark Mode' : 'Toggle Light Mode';
+    }
 }
 
-// Load dark mode preference
-if (localStorage.getItem('darkMode') === 'true') {
-    document.body.classList.add('dark-mode');
-    if (document.querySelector('.dark-mode-toggle')) {
-        document.querySelector('.dark-mode-toggle').textContent = '☀️';
+// Load light mode preference (default is dark)
+if (localStorage.getItem('lightMode') === 'true') {
+    document.body.classList.add('light-mode');
+    const toggle = document.querySelector('.dark-mode-toggle');
+    if (toggle) {
+        toggle.textContent = '🌙';
+        toggle.title = 'Toggle Dark Mode';
     }
 }
