@@ -1,6 +1,10 @@
-# Blue Protocol Star Resonance Raid Planner
+# 🌙 Moonlight Raid Planner
 
 A comprehensive web-based raid planner for Blue Protocol with timezone support, dark mode, and **multi-user synchronization** (no backend required!).
+
+## 🌐 Live Site
+
+**Visit:** https://smoothzy.github.io/bpsr-planner/
 
 ## Features
 
