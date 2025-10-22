@@ -7,7 +7,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0-23 hours
 const STORAGE_KEY = 'bpsr_players';
 const ADMIN_KEY = 'bond'; // Secret admin key
 const SYNC_STORAGE_KEY = 'sync_config';
-const JSONBIN_API = 'https://api.jsonbin.io/v3';
+const PASTEFY_API = 'https://pastefy.app/api/v2';
 
 // Server time reference: 9:00 AM CEST (UTC+2 in summer, UTC+1 in winter)
 // For simplicity, we'll use UTC+2 as the base (CEST summer time)
@@ -19,7 +19,7 @@ let selectedTimezone = 'auto';
 let availabilityGrid = {};
 let autoSyncInterval = null;
 let syncConfig = {
-    binId: '',
+    pasteId: '',
     autoSync: false
 };
 
@@ -733,17 +733,17 @@ function calculateBestTimes() {
 }
 
 // ============================================
-// JSONBin Sync Functions (No Token Required!)
+// Pastefy Sync Functions (No Token Required!)
 // ============================================
 
 function loadSyncConfig() {
     const saved = localStorage.getItem(SYNC_STORAGE_KEY);
     if (saved) {
         syncConfig = JSON.parse(saved);
-        document.getElementById('binId').value = syncConfig.binId || '';
-        if (syncConfig.binId) {
+        document.getElementById('binId').value = syncConfig.pasteId || '';
+        if (syncConfig.pasteId) {
             document.getElementById('syncInfo').style.display = 'block';
-            document.getElementById('binUrl').href = `https://jsonbin.io/${syncConfig.binId}`;
+            document.getElementById('binUrl').href = `https://pastefy.app/${syncConfig.pasteId}`;
         }
         if (syncConfig.autoSync) {
             startAutoSync();
@@ -752,7 +752,7 @@ function loadSyncConfig() {
 }
 
 function saveSyncConfig() {
-    syncConfig.binId = document.getElementById('binId').value.trim();
+    syncConfig.pasteId = document.getElementById('binId').value.trim();
     localStorage.setItem(SYNC_STORAGE_KEY, JSON.stringify(syncConfig));
 }
 
@@ -788,28 +788,24 @@ function showSyncStatus(message, type = 'info') {
 }
 
 async function loadFromBin() {
-    const binId = document.getElementById('binId').value.trim();
+    const pasteId = document.getElementById('binId').value.trim();
     
-    if (!binId) {
-        showSyncStatus('Please enter a Bin ID', 'error');
+    if (!pasteId) {
+        showSyncStatus('Please enter a Paste ID', 'error');
         return;
     }
     
     showSyncStatus('Loading from cloud...', 'loading');
     
     try {
-        const response = await fetch(`${JSONBIN_API}/b/${binId}/latest`, {
-            headers: {
-                'X-Access-Key': '$2a$10$wVq3WzYq9fGKvvFcOpBPOuAGN8p3L0mVZWQfE7kL9L3fY9HqWYqAm'
-            }
-        });
+        const response = await fetch(`${PASTEFY_API}/paste/${pasteId}`);
         
         if (!response.ok) {
             throw new Error(`Failed to load: ${response.status}`);
         }
         
         const data = await response.json();
-        const players = data.record || {};
+        const players = JSON.parse(data.content);
         
         // Merge with local data (keep newer entries)
         const localPlayers = loadPlayers();
@@ -830,7 +826,7 @@ async function loadFromBin() {
         calculateBestTimes();
         
         document.getElementById('syncInfo').style.display = 'block';
-        document.getElementById('binUrl').href = `https://jsonbin.io/${binId}`;
+        document.getElementById('binUrl').href = `https://pastefy.app/${pasteId}`;
         document.getElementById('lastSyncTime').textContent = new Date().toLocaleString();
         
         showSyncStatus(`Successfully loaded ${Object.keys(players).length} players from cloud`, 'success');
@@ -841,34 +837,28 @@ async function loadFromBin() {
 }
 
 async function saveToBin() {
-    let binId = document.getElementById('binId').value.trim();
+    let pasteId = document.getElementById('binId').value.trim();
     
     showSyncStatus('Saving to cloud...', 'loading');
     
     try {
         const players = loadPlayers();
+        const content = JSON.stringify(players, null, 2);
         
-        let url, method;
+        // Pastefy API doesn't support updates, so we always create new
+        // Users need to share the new ID if changed
+        const pasteData = {
+            title: 'BPSR Planner - Player Data',
+            content: content,
+            type: 'PASTE'
+        };
         
-        if (binId) {
-            // Update existing bin
-            url = `${JSONBIN_API}/b/${binId}`;
-            method = 'PUT';
-        } else {
-            // Create new bin
-            url = `${JSONBIN_API}/b`;
-            method = 'POST';
-        }
-        
-        const response = await fetch(url, {
-            method: method,
+        const response = await fetch(`${PASTEFY_API}/paste`, {
+            method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-Access-Key': '$2a$10$wVq3WzYq9fGKvvFcOpBPOuAGN8p3L0mVZWQfE7kL9L3fY9HqWYqAm',
-                'X-Bin-Name': 'BPSR Planner - Player Data',
-                'X-Bin-Private': 'false'
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(players)
+            body: JSON.stringify(pasteData)
         });
         
         if (!response.ok) {
@@ -876,25 +866,21 @@ async function saveToBin() {
         }
         
         const result = await response.json();
+        pasteId = result.paste.id;
         
-        if (!binId) {
-            // New bin created, save the ID
-            binId = result.metadata.id;
-            document.getElementById('binId').value = binId;
-        }
-        
+        // Update the ID field
+        document.getElementById('binId').value = pasteId;
+        syncConfig.pasteId = pasteId;
         saveSyncConfig();
         
         document.getElementById('syncInfo').style.display = 'block';
-        document.getElementById('binUrl').href = `https://jsonbin.io/${binId}`;
+        document.getElementById('binUrl').href = `https://pastefy.app/${pasteId}`;
         document.getElementById('lastSyncTime').textContent = new Date().toLocaleString();
         
         showSyncStatus(`Successfully saved ${Object.keys(players).length} players to cloud`, 'success');
         
-        if (!syncConfig.binId) {
-            syncConfig.binId = binId;
-            saveSyncConfig();
-            showSyncStatus(`✅ New storage created! Share this ID with your raid group: ${binId}`, 'success');
+        if (pasteId !== document.getElementById('binId').value) {
+            showSyncStatus(`✅ Storage created! Share this ID with your raid group: ${pasteId}`, 'success');
         }
     } catch (error) {
         showSyncStatus(`Error: ${error.message}`, 'error');
@@ -927,13 +913,13 @@ function startAutoSync() {
     document.getElementById('syncAuto').style.color = 'white';
     
     // Load immediately
-    if (syncConfig.binId) {
+    if (syncConfig.pasteId) {
         loadFromBin();
     }
     
     // Then every 30 seconds
     autoSyncInterval = setInterval(() => {
-        if (syncConfig.binId) {
+        if (syncConfig.pasteId) {
             loadFromBin();
         }
     }, 30000);
@@ -953,7 +939,7 @@ function stopAutoSync() {
 function disconnectSync() {
     if (confirm('This will disconnect from cloud sync. Your local data will be preserved. Continue?')) {
         stopAutoSync();
-        syncConfig = { binId: '', autoSync: false };
+        syncConfig = { pasteId: '', autoSync: false };
         localStorage.removeItem(SYNC_STORAGE_KEY);
         document.getElementById('binId').value = '';
         document.getElementById('syncInfo').style.display = 'none';
