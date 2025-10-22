@@ -289,7 +289,6 @@
                         <th>Total Hours Available</th>
                         <th>Weekly Availability</th>
                         <th>Most Active Day</th>
-                        <th>Peak Hours</th>
                         <th>Last Updated</th>
                         <th>Actions</th>
                     </tr>
@@ -414,23 +413,6 @@
                     dayHours[a] > dayHours[b] ? a : b
                 );
 
-                // Find peak hours (hours available on most days)
-                const hourCounts = {};
-                Object.values(player.availability).forEach(hours => {
-                    hours.forEach(h => {
-                        hourCounts[h] = (hourCounts[h] || 0) + 1;
-                    });
-                });
-
-                const peakHours = Object.keys(hourCounts)
-                    .sort((a, b) => hourCounts[b] - hourCounts[a])
-                    .slice(0, 3)
-                    .map(serverHour => {
-                        const localHour = getLocalHourFromServerHour(parseInt(serverHour));
-                        return `${localHour.toString().padStart(2, '0')}:00`;
-                    })
-                    .join(', ');
-
                 const lastUpdated = player.lastUpdated 
                     ? new Date(player.lastUpdated).toLocaleDateString('en-US', { 
                         month: 'short', 
@@ -460,7 +442,6 @@
                     <td>${totalHours} hours</td>
                     <td>${heatmapHTML}</td>
                     <td>${mostActiveDay} (${dayHours[mostActiveDay]}h)</td>
-                    <td>${peakHours || 'N/A'}</td>
                     <td>${lastUpdated}</td>
                     <td>
                         <div class="action-buttons">
@@ -535,26 +516,27 @@
         }
 
         function getLocalHourFromServerHour(serverHour) {
+            // Use current date for DST-aware conversion
             const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth();
-            const day = now.getDate();
-            
-            const berlinDate = new Date(year, month, day, 9, 0, 0);
-            const berlinUTC = berlinDate.getTime() - (isSummerTime() ? 2 : 1) * 60 * 60 * 1000;
-            const serverUTC = berlinUTC;
-            const serverDate = new Date(serverUTC + serverHour * 60 * 60 * 1000);
-            
-            if (selectedTimezone === 'auto') {
-                return serverDate.getHours();
-            } else {
-                const formatter = new Intl.DateTimeFormat('en-US', {
-                    timeZone: selectedTimezone,
+            const utcHour = (serverHour + 7) % 24;
+
+            // Create a UTC instant for the given server-hour on the current date
+            const utcDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), utcHour, 0, 0));
+
+            // For auto (browser local timezone) and specific timezones use toLocaleString
+            // with explicit 24-hour format to avoid locale differences
+            try {
+                const localHourStr = utcDate.toLocaleString('en-US', {
+                    timeZone: selectedTimezone === 'auto' ? Intl.DateTimeFormat().resolvedOptions().timeZone : selectedTimezone,
                     hour: 'numeric',
                     hour12: false
                 });
-                const localHour = parseInt(formatter.format(serverDate));
-                return localHour;
+                const parsed = parseInt(localHourStr, 10);
+                // Ensure hour is in 0-23 range
+                return ((isNaN(parsed) ? utcDate.getHours() : parsed) + 24) % 24;
+            } catch (e) {
+                // Fallback: use local machine conversion
+                return utcDate.getHours();
             }
         }
 

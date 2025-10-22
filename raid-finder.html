@@ -420,35 +420,27 @@
         }
 
         function getLocalHourFromServerHour(serverHour) {
-            // Use current date for DST awareness
+            // Use current date for DST-aware conversion
             const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth();
-            const day = now.getDate();
-            
-            // Create a date at 9:00 AM in Berlin timezone
-            const berlinDate = new Date(year, month, day, 9, 0, 0);
-            
-            // Berlin is UTC+2 in summer (CEST), UTC+1 in winter (CET)
-            const berlinOffset = isSummerTime() ? 2 : 1;
-            const berlinUTC = berlinDate.getTime() - (berlinOffset * 60 * 60 * 1000);
-            
-            // Server time 00:00 corresponds to Berlin 09:00
-            const serverUTC = berlinUTC;
-            
-            // Add the server hours to get the actual UTC time
-            const serverDate = new Date(serverUTC + serverHour * 60 * 60 * 1000);
-            
-            if (selectedTimezone === 'auto') {
-                return serverDate.getHours();
-            } else {
-                const formatter = new Intl.DateTimeFormat('en-US', {
-                    timeZone: selectedTimezone,
+            const utcHour = (serverHour + 7) % 24;
+
+            // Create a UTC instant for the given server-hour on the current date
+            const utcDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), utcHour, 0, 0));
+
+            // For auto (browser local timezone) and specific timezones use toLocaleString
+            // with explicit 24-hour format to avoid locale differences
+            try {
+                const localHourStr = utcDate.toLocaleString('en-US', {
+                    timeZone: selectedTimezone === 'auto' ? Intl.DateTimeFormat().resolvedOptions().timeZone : selectedTimezone,
                     hour: 'numeric',
                     hour12: false
                 });
-                const localHour = parseInt(formatter.format(serverDate));
-                return localHour;
+                const parsed = parseInt(localHourStr, 10);
+                // Ensure hour is in 0-23 range
+                return ((isNaN(parsed) ? utcDate.getHours() : parsed) + 24) % 24;
+            } catch (e) {
+                // Fallback: use local machine conversion
+                return utcDate.getHours();
             }
         }
 
@@ -923,7 +915,13 @@
                 selectedTimezone = timezoneSelect.value;
                 localStorage.setItem('selectedTimezone', selectedTimezone);
                 updatePopupTimes();
-                findRaidTimes(); // Re-render to show new timezone
+                
+                // Re-render the current view
+                if (currentView === 'list') {
+                    findRaidTimes();
+                } else {
+                    renderTimelineView();
+                }
             });
             
             modal.addEventListener('click', (e) => {
