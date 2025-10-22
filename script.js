@@ -7,7 +7,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0-23 hours
 const STORAGE_KEY = 'bpsr_players';
 const ADMIN_KEY = 'bond'; // Secret admin key
 const SYNC_STORAGE_KEY = 'sync_config';
-const PASTEFY_API = 'https://pastefy.app/api/v2';
+const DPASTE_API = 'https://dpaste.com/api/v2';
 
 // Server time reference: 9:00 AM CEST (UTC+2 in summer, UTC+1 in winter)
 // For simplicity, we'll use UTC+2 as the base (CEST summer time)
@@ -733,7 +733,7 @@ function calculateBestTimes() {
 }
 
 // ============================================
-// Pastefy Sync Functions (No Token Required!)
+// dpaste.com Sync Functions (No Token Required!)
 // ============================================
 
 function loadSyncConfig() {
@@ -743,7 +743,7 @@ function loadSyncConfig() {
         document.getElementById('binId').value = syncConfig.pasteId || '';
         if (syncConfig.pasteId) {
             document.getElementById('syncInfo').style.display = 'block';
-            document.getElementById('binUrl').href = `https://pastefy.app/${syncConfig.pasteId}`;
+            document.getElementById('binUrl').href = `https://dpaste.com/${syncConfig.pasteId}`;
         }
         if (syncConfig.autoSync) {
             startAutoSync();
@@ -798,14 +798,14 @@ async function loadFromBin() {
     showSyncStatus('Loading from cloud...', 'loading');
     
     try {
-        const response = await fetch(`${PASTEFY_API}/paste/${pasteId}`);
+        const response = await fetch(`https://dpaste.com/${pasteId}.txt`);
         
         if (!response.ok) {
             throw new Error(`Failed to load: ${response.status}`);
         }
         
-        const data = await response.json();
-        const players = JSON.parse(data.content);
+        const content = await response.text();
+        const players = JSON.parse(content);
         
         // Merge with local data (keep newer entries)
         const localPlayers = loadPlayers();
@@ -826,7 +826,7 @@ async function loadFromBin() {
         calculateBestTimes();
         
         document.getElementById('syncInfo').style.display = 'block';
-        document.getElementById('binUrl').href = `https://pastefy.app/${pasteId}`;
+        document.getElementById('binUrl').href = `https://dpaste.com/${pasteId}`;
         document.getElementById('lastSyncTime').textContent = new Date().toLocaleString();
         
         showSyncStatus(`Successfully loaded ${Object.keys(players).length} players from cloud`, 'success');
@@ -837,36 +837,31 @@ async function loadFromBin() {
 }
 
 async function saveToBin() {
-    let pasteId = document.getElementById('binId').value.trim();
-    
     showSyncStatus('Saving to cloud...', 'loading');
     
     try {
         const players = loadPlayers();
         const content = JSON.stringify(players, null, 2);
         
-        // Pastefy API doesn't support updates, so we always create new
-        // Users need to share the new ID if changed
-        const pasteData = {
-            title: 'BPSR Planner - Player Data',
-            content: content,
-            type: 'PASTE'
-        };
+        // Create form data for dpaste
+        const formData = new FormData();
+        formData.append('content', content);
+        formData.append('syntax', 'json');
+        formData.append('expiry_days', '365');
         
-        const response = await fetch(`${PASTEFY_API}/paste`, {
+        const response = await fetch(`${DPASTE_API}/`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(pasteData)
+            body: formData
         });
         
         if (!response.ok) {
             throw new Error(`Failed to save: ${response.status}`);
         }
         
-        const result = await response.json();
-        pasteId = result.paste.id;
+        // dpaste returns the URL in the response text
+        const pasteUrl = await response.text();
+        // Extract ID from URL (e.g., https://dpaste.com/ABC123 -> ABC123)
+        const pasteId = pasteUrl.trim().split('/').pop();
         
         // Update the ID field
         document.getElementById('binId').value = pasteId;
@@ -874,14 +869,11 @@ async function saveToBin() {
         saveSyncConfig();
         
         document.getElementById('syncInfo').style.display = 'block';
-        document.getElementById('binUrl').href = `https://pastefy.app/${pasteId}`;
+        document.getElementById('binUrl').href = `https://dpaste.com/${pasteId}`;
         document.getElementById('lastSyncTime').textContent = new Date().toLocaleString();
         
         showSyncStatus(`Successfully saved ${Object.keys(players).length} players to cloud`, 'success');
-        
-        if (pasteId !== document.getElementById('binId').value) {
-            showSyncStatus(`✅ Storage created! Share this ID with your raid group: ${pasteId}`, 'success');
-        }
+        showSyncStatus(`✅ Share this ID with your raid group: ${pasteId}`, 'success');
     } catch (error) {
         showSyncStatus(`Error: ${error.message}`, 'error');
         console.error('Save error:', error);
