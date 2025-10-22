@@ -9,13 +9,14 @@ A comprehensive web-based raid planner for Blue Protocol with timezone support, 
 ## Features
 
 ### 🔄 Multi-User Sync (NEW!)
-- **GitHub Gist Integration** - Share player data with your entire raid group
+- **Cloud Storage Integration** - Share player data with your entire raid group
+- **NO TOKENS REQUIRED** - Everyone can save without accounts or authentication!
 - **Real-time Sync** - Auto-sync every 30 seconds to see updates
-- **No Backend Server** - Uses GitHub's free Gist service as storage
+- **No Backend Server** - Uses free cloud storage service
 - **Conflict Resolution** - Smart merging keeps everyone's data safe
-- **Read-only Option** - Members can view without GitHub tokens
+- **Democratic Access** - All members can update their own availability
 - **Offline Support** - Falls back to localStorage when offline
-- 👉 **See [GIST_SETUP.md](GIST_SETUP.md) for complete setup guide**
+- 👉 **See [NO_TOKEN_SETUP.md](NO_TOKEN_SETUP.md) for complete setup guide**
 
 ### 🌍 Timezone Support
 - **Automatic timezone detection** - Detects your local timezone automatically
