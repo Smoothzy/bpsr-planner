@@ -6,8 +6,8 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0-23 hours
 const STORAGE_KEY = 'bpsr_players';
 const ADMIN_KEY = 'bond'; // Secret admin key
-const GIST_STORAGE_KEY = 'gist_config';
-const GITHUB_API = 'https://api.github.com';
+const SYNC_STORAGE_KEY = 'sync_config';
+const JSONBIN_API = 'https://api.jsonbin.io/v3';
 
 // Server time reference: 9:00 AM CEST (UTC+2 in summer, UTC+1 in winter)
 // For simplicity, we'll use UTC+2 as the base (CEST summer time)
@@ -18,9 +18,8 @@ let currentPlayer = null;
 let selectedTimezone = 'auto';
 let availabilityGrid = {};
 let autoSyncInterval = null;
-let gistConfig = {
-    gistId: '',
-    token: '',
+let syncConfig = {
+    binId: '',
     autoSync: false
 };
 
@@ -734,29 +733,27 @@ function calculateBestTimes() {
 }
 
 // ============================================
-// GitHub Gist Sync Functions
+// JSONBin Sync Functions (No Token Required!)
 // ============================================
 
-function loadGistConfig() {
-    const saved = localStorage.getItem(GIST_STORAGE_KEY);
+function loadSyncConfig() {
+    const saved = localStorage.getItem(SYNC_STORAGE_KEY);
     if (saved) {
-        gistConfig = JSON.parse(saved);
-        document.getElementById('gistId').value = gistConfig.gistId || '';
-        document.getElementById('githubToken').value = gistConfig.token || '';
-        if (gistConfig.gistId) {
+        syncConfig = JSON.parse(saved);
+        document.getElementById('binId').value = syncConfig.binId || '';
+        if (syncConfig.binId) {
             document.getElementById('syncInfo').style.display = 'block';
-            document.getElementById('gistUrl').href = `https://gist.github.com/${gistConfig.gistId}`;
+            document.getElementById('binUrl').href = `https://jsonbin.io/${syncConfig.binId}`;
         }
-        if (gistConfig.autoSync) {
+        if (syncConfig.autoSync) {
             startAutoSync();
         }
     }
 }
 
-function saveGistConfig() {
-    gistConfig.gistId = document.getElementById('gistId').value.trim();
-    gistConfig.token = document.getElementById('githubToken').value.trim();
-    localStorage.setItem(GIST_STORAGE_KEY, JSON.stringify(gistConfig));
+function saveSyncConfig() {
+    syncConfig.binId = document.getElementById('binId').value.trim();
+    localStorage.setItem(SYNC_STORAGE_KEY, JSON.stringify(syncConfig));
 }
 
 function showSyncStatus(message, type = 'info') {
@@ -790,31 +787,29 @@ function showSyncStatus(message, type = 'info') {
     }
 }
 
-async function loadFromGist() {
-    const gistId = document.getElementById('gistId').value.trim();
+async function loadFromBin() {
+    const binId = document.getElementById('binId').value.trim();
     
-    if (!gistId) {
-        showSyncStatus('Please enter a Gist ID', 'error');
+    if (!binId) {
+        showSyncStatus('Please enter a Bin ID', 'error');
         return;
     }
     
-    showSyncStatus('Loading from Gist...', 'loading');
+    showSyncStatus('Loading from cloud...', 'loading');
     
     try {
-        const response = await fetch(`${GITHUB_API}/gists/${gistId}`);
+        const response = await fetch(`${JSONBIN_API}/b/${binId}/latest`, {
+            headers: {
+                'X-Access-Key': '$2a$10$wVq3WzYq9fGKvvFcOpBPOuAGN8p3L0mVZWQfE7kL9L3fY9HqWYqAm'
+            }
+        });
         
         if (!response.ok) {
-            throw new Error(`Failed to load Gist: ${response.status}`);
+            throw new Error(`Failed to load: ${response.status}`);
         }
         
-        const gist = await response.json();
-        const file = gist.files['bpsr_players.json'];
-        
-        if (!file) {
-            throw new Error('Player data file not found in Gist');
-        }
-        
-        const players = JSON.parse(file.content);
+        const data = await response.json();
+        const players = data.record || {};
         
         // Merge with local data (keep newer entries)
         const localPlayers = loadPlayers();
@@ -830,101 +825,90 @@ async function loadFromGist() {
         });
         
         savePlayers(merged);
-        saveGistConfig();
+        saveSyncConfig();
         renderPlayersList();
         calculateBestTimes();
         
         document.getElementById('syncInfo').style.display = 'block';
-        document.getElementById('gistUrl').href = `https://gist.github.com/${gistId}`;
+        document.getElementById('binUrl').href = `https://jsonbin.io/${binId}`;
         document.getElementById('lastSyncTime').textContent = new Date().toLocaleString();
         
-        showSyncStatus(`Successfully loaded ${Object.keys(players).length} players from Gist`, 'success');
+        showSyncStatus(`Successfully loaded ${Object.keys(players).length} players from cloud`, 'success');
     } catch (error) {
         showSyncStatus(`Error: ${error.message}`, 'error');
-        console.error('Gist load error:', error);
+        console.error('Load error:', error);
     }
 }
 
-async function saveToGist() {
-    let gistId = document.getElementById('gistId').value.trim();
-    const token = document.getElementById('githubToken').value.trim();
+async function saveToBin() {
+    let binId = document.getElementById('binId').value.trim();
     
-    if (!token) {
-        showSyncStatus('GitHub token required to save. See "How to get?" link for instructions.', 'error');
-        return;
-    }
-    
-    showSyncStatus('Saving to Gist...', 'loading');
+    showSyncStatus('Saving to cloud...', 'loading');
     
     try {
         const players = loadPlayers();
-        const content = JSON.stringify(players, null, 2);
         
-        const gistData = {
-            description: 'Blue Protocol Star Resonance Raid Planner - Player Data',
-            public: true,
-            files: {
-                'bpsr_players.json': {
-                    content: content
-                }
-            }
-        };
+        let url, method;
         
-        let url = `${GITHUB_API}/gists`;
-        let method = 'POST';
-        
-        if (gistId) {
-            // Update existing gist
-            url = `${GITHUB_API}/gists/${gistId}`;
-            method = 'PATCH';
+        if (binId) {
+            // Update existing bin
+            url = `${JSONBIN_API}/b/${binId}`;
+            method = 'PUT';
+        } else {
+            // Create new bin
+            url = `${JSONBIN_API}/b`;
+            method = 'POST';
         }
         
         const response = await fetch(url, {
             method: method,
             headers: {
-                'Authorization': `token ${token}`,
                 'Content-Type': 'application/json',
+                'X-Access-Key': '$2a$10$wVq3WzYq9fGKvvFcOpBPOuAGN8p3L0mVZWQfE7kL9L3fY9HqWYqAm',
+                'X-Bin-Name': 'BPSR Planner - Player Data',
+                'X-Bin-Private': 'false'
             },
-            body: JSON.stringify(gistData)
+            body: JSON.stringify(players)
         });
         
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || `Failed to save: ${response.status}`);
+            throw new Error(`Failed to save: ${response.status}`);
         }
         
         const result = await response.json();
         
-        if (!gistId) {
-            // New gist created, save the ID
-            gistId = result.id;
-            document.getElementById('gistId').value = gistId;
+        if (!binId) {
+            // New bin created, save the ID
+            binId = result.metadata.id;
+            document.getElementById('binId').value = binId;
         }
         
-        saveGistConfig();
+        saveSyncConfig();
         
         document.getElementById('syncInfo').style.display = 'block';
-        document.getElementById('gistUrl').href = result.html_url;
+        document.getElementById('binUrl').href = `https://jsonbin.io/${binId}`;
         document.getElementById('lastSyncTime').textContent = new Date().toLocaleString();
         
-        showSyncStatus(`Successfully saved ${Object.keys(players).length} players to Gist`, 'success');
+        showSyncStatus(`Successfully saved ${Object.keys(players).length} players to cloud`, 'success');
         
-        if (!gistConfig.gistId) {
-            showSyncStatus(`✅ New Gist created! Share this ID with your raid group: ${gistId}`, 'success');
+        if (!syncConfig.binId) {
+            syncConfig.binId = binId;
+            saveSyncConfig();
+            showSyncStatus(`✅ New storage created! Share this ID with your raid group: ${binId}`, 'success');
         }
     } catch (error) {
         showSyncStatus(`Error: ${error.message}`, 'error');
-        console.error('Gist save error:', error);
+        console.error('Save error:', error);
     }
 }
 
 function toggleAutoSync() {
-    gistConfig.autoSync = !gistConfig.autoSync;
-    saveGistConfig();
+    syncConfig.autoSync = !syncConfig.autoSync;
+    saveSyncConfig();
     
     const statusSpan = document.getElementById('autoSyncStatus');
     
-    if (gistConfig.autoSync) {
+    if (syncConfig.autoSync) {
         startAutoSync();
         statusSpan.textContent = 'ON';
         showSyncStatus('Auto-sync enabled. Will check for updates every 30 seconds.', 'success');
@@ -943,14 +927,14 @@ function startAutoSync() {
     document.getElementById('syncAuto').style.color = 'white';
     
     // Load immediately
-    if (gistConfig.gistId) {
-        loadFromGist();
+    if (syncConfig.binId) {
+        loadFromBin();
     }
     
     // Then every 30 seconds
     autoSyncInterval = setInterval(() => {
-        if (gistConfig.gistId) {
-            loadFromGist();
+        if (syncConfig.binId) {
+            loadFromBin();
         }
     }, 30000);
 }
@@ -966,38 +950,16 @@ function stopAutoSync() {
     document.getElementById('syncAuto').style.color = '';
 }
 
-function disconnectGist() {
-    if (confirm('This will disconnect from the shared Gist. Your local data will be preserved. Continue?')) {
+function disconnectSync() {
+    if (confirm('This will disconnect from cloud sync. Your local data will be preserved. Continue?')) {
         stopAutoSync();
-        gistConfig = { gistId: '', token: '', autoSync: false };
-        localStorage.removeItem(GIST_STORAGE_KEY);
-        document.getElementById('gistId').value = '';
-        document.getElementById('githubToken').value = '';
+        syncConfig = { binId: '', autoSync: false };
+        localStorage.removeItem(SYNC_STORAGE_KEY);
+        document.getElementById('binId').value = '';
         document.getElementById('syncInfo').style.display = 'none';
         document.getElementById('autoSyncStatus').textContent = 'OFF';
-        showSyncStatus('Disconnected from Gist. Local data preserved.', 'info');
+        showSyncStatus('Disconnected from cloud sync. Local data preserved.', 'info');
     }
-}
-
-function showTokenHelp() {
-    const helpText = `
-How to get a GitHub Token:
-
-1. Go to https://github.com/settings/tokens
-2. Click "Generate new token (classic)"
-3. Give it a name: "BPSR Planner"
-4. Select scope: ✓ gist
-5. Click "Generate token"
-6. Copy the token (starts with ghp_)
-7. Paste it in the token field
-
-Note: Keep your token private! Don't share it publicly.
-
-For READ ONLY access (just loading data), you don't need a token!
-Tokens are only needed if you want to create or update the Gist.
-    `.trim();
-    
-    alert(helpText);
 }
 
 // Event Listeners
@@ -1034,10 +996,10 @@ document.getElementById('timezoneSelect').addEventListener('change', (e) => {
 });
 
 // Sync button event listeners
-document.getElementById('syncLoad').addEventListener('click', loadFromGist);
-document.getElementById('syncSave').addEventListener('click', saveToGist);
+document.getElementById('syncLoad').addEventListener('click', loadFromBin);
+document.getElementById('syncSave').addEventListener('click', saveToBin);
 document.getElementById('syncAuto').addEventListener('click', toggleAutoSync);
-document.getElementById('syncClear').addEventListener('click', disconnectGist);
+document.getElementById('syncClear').addEventListener('click', disconnectSync);
 
 // Initialize
 function init() {
@@ -1047,7 +1009,7 @@ function init() {
     renderPlayersList();
     calculateBestTimes();
     updateTimeDisplays();
-    loadGistConfig(); // Load saved Gist configuration
+    loadSyncConfig(); // Load saved sync configuration
     
     // Update time displays every second
     setInterval(updateTimeDisplays, 1000);

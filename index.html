@@ -157,8 +157,8 @@
         </div>
 
         <div class="sync-section" style="background: var(--card-bg); padding: 20px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px var(--shadow);">
-            <h2>🔄 Multi-User Sync <span style="font-size: 0.6em; color: var(--text-secondary);">(Optional)</span></h2>
-            <p class="instruction">Share player data with your raid group using GitHub Gist (no backend required!)</p>
+            <h2>🔄 Multi-User Sync <span style="font-size: 0.6em; color: var(--text-secondary);">(No Tokens Required!)</span></h2>
+            <p class="instruction">Share player data with your raid group - everyone can add and update their availability!</p>
             
             <div class="sync-status" id="syncStatus" style="padding: 10px; margin: 10px 0; border-radius: 5px; display: none;">
                 <span id="syncStatusIcon"></span>
@@ -166,22 +166,16 @@
             </div>
 
             <div class="sync-controls" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
-                <div class="form-group" style="flex: 1; min-width: 250px;">
-                    <label for="gistId">Gist ID:</label>
-                    <input type="text" id="gistId" placeholder="Enter shared Gist ID (or leave empty to create new)" style="width: 100%;">
-                    <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Get this from your raid leader or create a new one</small>
-                </div>
-                
-                <div class="form-group" style="flex: 1; min-width: 250px;">
-                    <label for="githubToken">GitHub Token <span style="color: var(--text-secondary);">(optional for reading)</span>:</label>
-                    <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxx" style="width: 100%;">
-                    <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Required only for creating/updating. <a href="#" onclick="showTokenHelp(); return false;" style="color: var(--accent-primary);">How to get?</a></small>
+                <div class="form-group" style="flex: 1; min-width: 300px;">
+                    <label for="binId">Shared Storage ID:</label>
+                    <input type="text" id="binId" placeholder="Enter shared ID or leave empty to create new" style="width: 100%;">
+                    <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Get this from your raid leader or create a new one. Everyone can save!</small>
                 </div>
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
-                <button id="syncLoad" class="btn-secondary">📥 Load from Gist</button>
-                <button id="syncSave" class="btn-secondary">📤 Save to Gist</button>
+                <button id="syncLoad" class="btn-secondary">📥 Load from Cloud</button>
+                <button id="syncSave" class="btn-secondary">📤 Save to Cloud</button>
                 <button id="syncAuto" class="btn-secondary">🔄 Auto-Sync: <span id="autoSyncStatus">OFF</span></button>
                 <button id="syncClear" class="btn-secondary" style="margin-left: auto;">❌ Disconnect</button>
             </div>
@@ -189,7 +183,7 @@
             <div id="syncInfo" style="margin-top: 15px; padding: 10px; background: var(--bg-secondary); border-radius: 5px; display: none;">
                 <small style="color: var(--text-secondary);">
                     <strong>Last Sync:</strong> <span id="lastSyncTime">Never</span><br>
-                    <strong>Gist URL:</strong> <a id="gistUrl" href="#" target="_blank" style="color: var(--accent-primary);">View Gist</a>
+                    <strong>Storage URL:</strong> <a id="binUrl" href="#" target="_blank" style="color: var(--accent-primary);">View Online</a>
                 </small>
             </div>
         </div>
