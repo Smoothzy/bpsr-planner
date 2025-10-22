@@ -66,25 +66,28 @@ function getLocalHourFromServerHour(serverHour) {
     // Convert server hour to local hour based on selected timezone
     // Server time 00:00 = 7:00 UTC (because 9:00 CEST = 7:00 UTC = 0:00 Server)
     
-    // Use current date or a summer date for DST-aware conversion
+    // Use current date for DST-aware conversion
     const now = new Date();
     const utcHour = (serverHour + 7) % 24;
-    
-    // Use the actual current date to maintain DST awareness
+
+    // Create a UTC instant for the given server-hour on the current date
     const utcDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), utcHour, 0, 0));
-    
-    if (selectedTimezone === 'auto') {
+
+    // For auto (browser local timezone) and specific timezones use toLocaleString
+    // with explicit 24-hour format to avoid locale differences
+    try {
+        const localHourStr = utcDate.toLocaleString('en-US', {
+            timeZone: selectedTimezone === 'auto' ? Intl.DateTimeFormat().resolvedOptions().timeZone : selectedTimezone,
+            hour: 'numeric',
+            hour12: false
+        });
+        const parsed = parseInt(localHourStr, 10);
+        // Ensure hour is in 0-23 range
+        return ((isNaN(parsed) ? utcDate.getHours() : parsed) + 24) % 24;
+    } catch (e) {
+        // Fallback: use local machine conversion
         return utcDate.getHours();
     }
-    
-    // Convert UTC to the selected timezone
-    const localHourStr = utcDate.toLocaleString('en-US', { 
-        timeZone: selectedTimezone,
-        hour: 'numeric',
-        hour12: false 
-    });
-    
-    return parseInt(localHourStr);
 }
 
 function getServerHourFromLocalHour(localHour) {
@@ -446,8 +449,10 @@ function renderPlayersList() {
             hours.forEach(hour => hourCounts[hour]++);
         });
         
-        const peakServerHour = hourCounts.indexOf(Math.max(...hourCounts));
-        const peakLocalHour = getLocalHourFromServerHour(peakServerHour);
+    // Determine peak server hour safely: if all zeros, set to null
+    const maxCount = Math.max(...hourCounts);
+    const peakServerHour = maxCount > 0 ? hourCounts.indexOf(maxCount) : null;
+    const peakLocalHour = peakServerHour !== null ? getLocalHourFromServerHour(peakServerHour) : null;
         const peakDays = Object.keys(player.availability).filter(day => 
             player.availability[day].includes(peakServerHour)
         );
@@ -478,7 +483,7 @@ function renderPlayersList() {
                 </div>
                 <div class="player-info-row">
                     <span class="player-info-label">🌟 Most Available:</span>
-                    <span class="player-info-value">${formatLocalHour(peakLocalHour)} (${formatServerHour(peakServerHour)} ST)</span>
+                    <span class="player-info-value">${peakLocalHour !== null ? `${formatLocalHour(peakLocalHour)} (${formatServerHour(peakServerHour)} ST)` : 'No peak'}</span>
                 </div>
                 <div class="player-info-row">
                     <span class="player-info-label">📅 Last Updated:</span>
@@ -654,7 +659,7 @@ function calculateBestTimes() {
         return;
     }
     
-    // Count availability for each time slot
+    // Count availability for each time slot (server-hour keyed)
     const timeSlotCounts = {};
     
     DAYS.forEach(day => {
@@ -709,15 +714,15 @@ function calculateBestTimes() {
     // Show top 12 best times
     container.innerHTML = '';
     bestTimes.slice(0, 12).forEach(time => {
-        // Convert server hour to local hour for display
-        const localHour = getLocalHourFromServerHour(time.hour);
-        const serverHour = time.hour;
+    // Convert server hour to local hour for display (handle nulls defensively)
+    const serverHour = time.hour;
+    const localHour = typeof serverHour === 'number' ? getLocalHourFromServerHour(serverHour) : null;
         
         const option = document.createElement('div');
         option.className = 'time-option';
         option.innerHTML = `
             <div class="time-option-day">${time.day}</div>
-            <div class="time-option-time">${formatLocalHour(localHour)}</div>
+            <div class="time-option-time">${localHour !== null ? formatLocalHour(localHour) : 'N/A'}</div>
             <div class="time-option-server">${formatServerHour(serverHour)} Server Time</div>
             <div class="time-option-count">${time.count} player${time.count > 1 ? 's' : ''} available</div>
             <div style="margin-top: 10px; font-size: 0.85em; color: #666;">

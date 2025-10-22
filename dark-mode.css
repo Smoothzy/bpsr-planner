@@ -171,13 +171,28 @@ body {
 }
 
 /* Modal styles for dark mode */
-.modal-content {
-    background: var(--card-bg);
-    color: var(--text-primary);
+.player-details-modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
 }
 
-.modal-body {
+.player-details-modal .modal-content {
     background: var(--card-bg);
+    color: var(--text-primary);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    max-width: 900px;
+    width: 95%;
+    max-height: 85vh;
+    overflow: auto;
+}
+
+.player-details-modal .modal-body {
+    background: transparent;
     color: var(--text-primary);
 }
 
@@ -195,7 +210,8 @@ body {
 }
 
 #syncStatusText {
-    color: #0f172a;
+    /* Use variable so it matches theme */
+    color: var(--text-primary);
 }
 
 .detailed-schedule {
@@ -220,13 +236,13 @@ body {
 }
 
 /* Light mode overrides for modal */
-body.light-mode .modal-content {
+body.light-mode .player-details-modal .modal-content {
     background: #ffffff;
     color: #1e293b;
 }
 
-body.light-mode .modal-body {
-    background: #ffffff;
+body.light-mode .player-details-modal .modal-body {
+    background: transparent;
 }
 
 body.light-mode .stat-card {
