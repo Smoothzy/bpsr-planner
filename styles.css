@@ -333,6 +333,10 @@ h2 {
     cursor: pointer;
     transition: all 0.2s;
     background: white;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 .time-slot:hover {
@@ -343,6 +347,10 @@ h2 {
 .time-slot.selected {
     background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
     border-color: #764ba2;
+}
+
+.time-slot.selected:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }
 
 .actions {

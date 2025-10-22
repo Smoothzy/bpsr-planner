@@ -23,6 +23,10 @@ let syncConfig = {
     autoSync: false
 };
 
+// Drag selection state
+let isDragging = false;
+let dragMode = null; // 'select' or 'deselect'
+
 // Check if admin mode is enabled
 function isAdminMode() {
     return localStorage.getItem('adminKey') === ADMIN_KEY;
@@ -396,7 +400,30 @@ function renderAvailabilityGrid() {
                 slot.classList.add('selected');
             }
             
-            slot.addEventListener('click', () => toggleTimeSlot(day, localHour, slot));
+            // Mouse down starts dragging
+            slot.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                isDragging = true;
+                const isCurrentlySelected = slot.classList.contains('selected');
+                dragMode = isCurrentlySelected ? 'deselect' : 'select';
+                toggleTimeSlot(day, localHour, slot);
+            });
+            
+            // Mouse enter while dragging
+            slot.addEventListener('mouseenter', () => {
+                if (isDragging) {
+                    const serverHour = getServerHourFromLocalHour(localHour);
+                    const isSelected = availabilityGrid[day].has(serverHour);
+                    
+                    if (dragMode === 'select' && !isSelected) {
+                        availabilityGrid[day].add(serverHour);
+                        slot.classList.add('selected');
+                    } else if (dragMode === 'deselect' && isSelected) {
+                        availabilityGrid[day].delete(serverHour);
+                        slot.classList.remove('selected');
+                    }
+                }
+            });
             
             // Add tooltip will be updated by updateGridTooltips
             slot.title = `${day} ${formatLocalHour(localHour)}`;
@@ -992,6 +1019,19 @@ function init() {
     
     // Update time displays every second
     setInterval(updateTimeDisplays, 1000);
+    
+    // Global mouse up listener to stop dragging
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        dragMode = null;
+    });
+    
+    // Prevent text selection while dragging
+    document.addEventListener('selectstart', (e) => {
+        if (isDragging) {
+            e.preventDefault();
+        }
+    });
     
     // Auto-detect timezone
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
