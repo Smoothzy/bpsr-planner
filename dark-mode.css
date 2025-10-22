@@ -1,0 +1,301 @@
+/* Dark Mode Styles - Default is Dark */
+:root {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #94a3b8;
+    --border-color: #475569;
+    --card-bg: #1e293b;
+    --gradient-start: #8b5cf6;
+    --gradient-end: #ec4899;
+    --header-bg: rgba(15, 23, 42, 0.95);
+    --shadow: rgba(0, 0, 0, 0.5);
+    --shadow-hover: rgba(0, 0, 0, 0.7);
+    --input-bg: #334155;
+    --accent-primary: #8b5cf6;
+    --accent-secondary: #ec4899;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+}
+
+body.light-mode {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #e2e8f0;
+    --text-primary: #1e293b;
+    --text-secondary: #475569;
+    --text-tertiary: #64748b;
+    --border-color: #cbd5e1;
+    --card-bg: #ffffff;
+    --gradient-start: #8b5cf6;
+    --gradient-end: #ec4899;
+    --header-bg: rgba(255, 255, 255, 0.95);
+    --shadow: rgba(0, 0, 0, 0.1);
+    --shadow-hover: rgba(0, 0, 0, 0.15);
+    --input-bg: #ffffff;
+    --accent-primary: #8b5cf6;
+    --accent-secondary: #ec4899;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+}
+
+/* Dark mode toggle button */
+.dark-mode-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+    color: white;
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.5em;
+    box-shadow: 0 4px 10px var(--shadow);
+    transition: all 0.3s;
+}
+
+.dark-mode-toggle:hover {
+    transform: scale(1.1) rotate(15deg);
+    box-shadow: 0 6px 15px var(--shadow-hover);
+}
+
+/* Update existing styles to use CSS variables */
+body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.container {
+    background: var(--header-bg);
+    color: var(--text-primary);
+}
+
+.user-form {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+}
+
+.form-group input,
+.form-group select {
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    background: var(--input-bg);
+}
+
+/* Add transitions for smooth theme switching */
+.container,
+.user-form,
+.player-card,
+.time-slot,
+.availability-grid,
+.conversion-example,
+.timezone-conversion-info,
+.availability-detailed {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.availability-grid {
+    background: var(--card-bg);
+}
+
+.day-label {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.time-slot {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+}
+
+.time-slot:hover {
+    background: var(--bg-tertiary);
+}
+
+.player-card {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+}
+
+.player-info-row {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.player-info-label {
+    color: var(--text-secondary);
+}
+
+.availability-detailed {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+}
+
+.availability-header {
+    color: var(--gradient-start);
+}
+
+.mini-bar-container {
+    background: var(--bg-tertiary);
+}
+
+.availability-overview {
+    background: var(--bg-secondary);
+}
+
+.time-option {
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+}
+
+.timezone-conversion-info {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+}
+
+.conversion-example {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+}
+
+/* Modal styles for dark mode */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    animation: fadeIn 0.3s;
+}
+
+.modal-popup {
+    background: var(--card-bg);
+    border-radius: 15px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s;
+    position: relative;
+}
+
+.modal-popup h3 {
+    color: var(--text-primary);
+    margin-bottom: 20px;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 1.5em;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close-btn:hover {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: white;
+    transform: rotate(90deg);
+}
+
+body.light-mode .modal-close-btn {
+    background: var(--bg-tertiary);
+    border-color: var(--border-color);
+}
+
+body.light-mode .modal-close-btn:hover {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: white;
+}
+
+.time-display-popup {
+    background: var(--bg-secondary);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.time-display-popup .time {
+    font-size: 2em;
+    font-weight: bold;
+    color: var(--gradient-start);
+    font-family: 'Courier New', monospace;
+}
+
+.conversion-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.conversion-item {
+    background: var(--bg-secondary);
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.conversion-item-local {
+    font-weight: bold;
+    color: var(--gradient-start);
+    margin-bottom: 5px;
+}
+
+.conversion-item-server {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

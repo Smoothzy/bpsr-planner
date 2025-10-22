@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Timezone-aware raid scheduling tool for Blue Protocol Star Resonance raids. Coordinate raid times across 43+ timezones with automatic DST detection.">
+    <meta name="keywords" content="Blue Protocol, Star Resonance, raid planner, timezone, BPSR, MMO, raid scheduler">
+    <meta name="author" content="BPSR Community">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Moonlight Raid Planner - Blue Protocol">
+    <meta property="og:description" content="Coordinate Blue Protocol raids across timezones with ease. Support for 43+ timezones, automatic DST, and dark mode.">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Moonlight Raid Planner - Blue Protocol">
+    <meta name="twitter:description" content="Timezone-aware raid scheduling for Blue Protocol Star Resonance">
+    
+    <title>Moonlight Raid Planner - Blue Protocol Star Resonance</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dark-mode.css">
+</head>
+<body>
+    <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle Light Mode">☀️</button>
+    <div class="container">
+        <header>
+            <h1>Moonlight Raid Planner</h1>
+        </header>
+
+        <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+            <a href="players-overview.html" style="padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 5px; font-weight: 600; transition: all 0.3s;">
+                👥 Players Overview
+            </a>
+            <a href="raid-finder.html" style="padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 5px; font-weight: 600; transition: all 0.3s;">
+                🔍 Advanced Raid Finder
+            </a>
+        </div>
+
+        <div class="timezone-info">
+            <div class="time-display">
+                <span class="label">Your Local Time:</span>
+                <span id="localTime" class="time">--:--</span>
+                <span id="timezoneLabel" class="timezone-label">Auto-detected</span>
+            </div>
+            <div class="time-display">
+                <span class="label">Server Time:</span>
+                <span id="serverTime" class="time">--:--</span>
+                <span class="timezone-label">Reference: 9am CEST = 0am ST</span>
+            </div>
+            <div class="timezone-selector">
+                <label for="timezoneSelect">Your Timezone:</label>
+                <select id="timezoneSelect">
+                    <option value="auto">Auto-detect</option>
+                    <option value="America/New_York">EST (New York)</option>
+                    <option value="America/Chicago">CST (Chicago)</option>
+                    <option value="America/Denver">MST (Denver)</option>
+                    <option value="America/Los_Angeles">PST (Los Angeles)</option>
+                    <option value="America/Phoenix">MST (Phoenix)</option>
+                    <option value="America/Anchorage">AKST (Anchorage)</option>
+                    <option value="America/Toronto">EST (Toronto)</option>
+                    <option value="America/Vancouver">PST (Vancouver)</option>
+                    <option value="America/Mexico_City">CST (Mexico City)</option>
+                    <option value="America/Sao_Paulo">BRT (São Paulo)</option>
+                    <option value="America/Argentina/Buenos_Aires">ART (Buenos Aires)</option>
+                    <option value="Europe/London">GMT (London)</option>
+                    <option value="Europe/Paris">CET (Paris)</option>
+                    <option value="Europe/Berlin">CEST (Berlin)</option>
+                    <option value="Europe/Madrid">CET (Madrid)</option>
+                    <option value="Europe/Rome">CET (Rome)</option>
+                    <option value="Europe/Amsterdam">CET (Amsterdam)</option>
+                    <option value="Europe/Brussels">CET (Brussels)</option>
+                    <option value="Europe/Vienna">CET (Vienna)</option>
+                    <option value="Europe/Stockholm">CET (Stockholm)</option>
+                    <option value="Europe/Warsaw">CET (Warsaw)</option>
+                    <option value="Europe/Athens">EET (Athens)</option>
+                    <option value="Europe/Istanbul">TRT (Istanbul)</option>
+                    <option value="Europe/Moscow">MSK (Moscow)</option>
+                    <option value="Asia/Tokyo">JST (Tokyo)</option>
+                    <option value="Asia/Seoul">KST (Seoul)</option>
+                    <option value="Asia/Shanghai">CST (Shanghai)</option>
+                    <option value="Asia/Hong_Kong">HKT (Hong Kong)</option>
+                    <option value="Asia/Singapore">SGT (Singapore)</option>
+                    <option value="Asia/Bangkok">ICT (Bangkok)</option>
+                    <option value="Asia/Dubai">GST (Dubai)</option>
+                    <option value="Asia/Kolkata">IST (Mumbai)</option>
+                    <option value="Asia/Jakarta">WIB (Jakarta)</option>
+                    <option value="Asia/Manila">PHT (Manila)</option>
+                    <option value="Asia/Taipei">CST (Taipei)</option>
+                    <option value="Australia/Sydney">AEST (Sydney)</option>
+                    <option value="Australia/Melbourne">AEST (Melbourne)</option>
+                    <option value="Australia/Perth">AWST (Perth)</option>
+                    <option value="Pacific/Auckland">NZST (Auckland)</option>
+                    <option value="Pacific/Fiji">FJT (Fiji)</option>
+                    <option value="Pacific/Honolulu">HST (Honolulu)</option>
+                    <option value="Africa/Cairo">EET (Cairo)</option>
+                    <option value="Africa/Johannesburg">SAST (Johannesburg)</option>
+                    <option value="Africa/Lagos">WAT (Lagos)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="timezone-conversion-info">
+            <div class="conversion-title">⏰ Timezone Quick Reference</div>
+            <div class="conversion-note" id="dstNote">
+                <strong>Server Time Base:</strong> 9:00 AM CEST (Berlin summer) = 00:00 Server Time<br>
+                <small>Conversions automatically adjust for summer/winter time based on current date</small>
+            </div>
+            <div id="conversionExamples" class="conversion-examples"></div>
+        </div>
+
+        <div class="user-form">
+            <h2>Player Information</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="playerName">Player Name:</label>
+                    <input type="text" id="playerName" placeholder="Enter your name">
+                    <button id="loadPlayer" class="btn-secondary">Load Player</button>
+                </div>
+                
+                <div class="form-group">
+                    <label for="playerClass">Class:</label>
+                    <select id="playerClass">
+                        <option value="">Select Class</option>
+                        <option value="Blade Warden">Blade Warden</option>
+                        <option value="Twin Striker">Twin Striker</option>
+                        <option value="Blast Archer">Blast Archer</option>
+                        <option value="Spell Caster">Spell Caster</option>
+                        <option value="Heavy Smasher">Heavy Smasher</option>
+                        <option value="Aegis Fighter">Aegis Fighter</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="gearScore">Gear Score:</label>
+                    <input type="number" id="gearScore" placeholder="Enter gear score" min="0">
+                </div>
+            </div>
+        </div>
+
+        <div class="availability-section">
+            <h2>Set Your Availability</h2>
+            <p class="instruction">Click on the time slots when you're available (times shown in YOUR timezone, server time shown below each hour)</p>
+            
+            <div class="availability-grid">
+                <div class="grid-header">
+                    <div class="corner-cell">Day / Hour</div>
+                    <div class="time-labels" id="timeLabels"></div>
+                </div>
+                <div class="grid-body" id="gridBody"></div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button id="savePlayer" class="btn-primary">Save / Update Player</button>
+            <button id="clearForm" class="btn-secondary">Clear Form</button>
+        </div>
+
+        <div class="sync-section" style="background: var(--card-bg); padding: 20px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px var(--shadow);">
+            <h2>🔄 Multi-User Sync <span style="font-size: 0.6em; color: var(--text-secondary);">(Optional)</span></h2>
+            <p class="instruction">Share player data with your raid group using GitHub Gist (no backend required!)</p>
+            
+            <div class="sync-status" id="syncStatus" style="padding: 10px; margin: 10px 0; border-radius: 5px; display: none;">
+                <span id="syncStatusIcon"></span>
+                <span id="syncStatusText"></span>
+            </div>
+
+            <div class="sync-controls" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+                <div class="form-group" style="flex: 1; min-width: 250px;">
+                    <label for="gistId">Gist ID:</label>
+                    <input type="text" id="gistId" placeholder="Enter shared Gist ID (or leave empty to create new)" style="width: 100%;">
+                    <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Get this from your raid leader or create a new one</small>
+                </div>
+                
+                <div class="form-group" style="flex: 1; min-width: 250px;">
+                    <label for="githubToken">GitHub Token <span style="color: var(--text-secondary);">(optional for reading)</span>:</label>
+                    <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxx" style="width: 100%;">
+                    <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Required only for creating/updating. <a href="#" onclick="showTokenHelp(); return false;" style="color: var(--accent-primary);">How to get?</a></small>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                <button id="syncLoad" class="btn-secondary">📥 Load from Gist</button>
+                <button id="syncSave" class="btn-secondary">📤 Save to Gist</button>
+                <button id="syncAuto" class="btn-secondary">🔄 Auto-Sync: <span id="autoSyncStatus">OFF</span></button>
+                <button id="syncClear" class="btn-secondary" style="margin-left: auto;">❌ Disconnect</button>
+            </div>
+
+            <div id="syncInfo" style="margin-top: 15px; padding: 10px; background: var(--bg-secondary); border-radius: 5px; display: none;">
+                <small style="color: var(--text-secondary);">
+                    <strong>Last Sync:</strong> <span id="lastSyncTime">Never</span><br>
+                    <strong>Gist URL:</strong> <a id="gistUrl" href="#" target="_blank" style="color: var(--accent-primary);">View Gist</a>
+                </small>
+            </div>
+        </div>
+
+        <div class="players-section">
+            <h2>Registered Players</h2>
+            <div id="playersList" class="players-list"></div>
+        </div>
+
+        <div class="availability-overview">
+            <h2>Raid Time Finder</h2>
+            <p class="instruction">Shows best times when most players are available</p>
+            <div id="bestTimes" class="best-times"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

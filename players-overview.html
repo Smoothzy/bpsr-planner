@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Players Overview - BPSR Planner</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dark-mode.css">
+    <style>
+        .players-table-container {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px var(--shadow);
+            overflow-x: auto;
+        }
+
+        .players-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .players-table th {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 2px solid var(--accent-primary);
+        }
+
+        .players-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .players-table tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        .players-table tbody tr:nth-child(even) {
+            background: var(--bg-secondary);
+        }
+
+        .players-table tbody tr:nth-child(even):hover {
+            background: var(--bg-tertiary);
+        }
+
+        .class-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .availability-heatmap {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 3px;
+            max-width: 200px;
+        }
+
+        .heatmap-cell {
+            aspect-ratio: 1;
+            border-radius: 3px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .heatmap-cell.empty {
+            background: var(--bg-tertiary);
+        }
+
+        .heatmap-cell.low {
+            background: #ffc107;
+        }
+
+        .heatmap-cell.medium {
+            background: #28a745;
+        }
+
+        .heatmap-cell.high {
+            background: #667eea;
+        }
+
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-box {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid var(--border-color);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9em;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 8px 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 1em;
+            background: var(--card-bg);
+            color: var(--text-primary);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 0.85em;
+        }
+
+        .availability-details {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .day-initial {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+            border-radius: 3px;
+            margin: 1px;
+            font-size: 0.75em;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .nav-link {
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .nav-link:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body>
+    <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle Light Mode">☀️</button>
+    
+    <div class="container">
+        <header>
+            <h1>🌟 Players Overview</h1>
+            <p class="subtitle">Detailed view of all registered players</p>
+            <button class="btn-primary" onclick="showTimezonePopup()" style="margin-top: 10px;">🌍 Timezone Settings</button>
+        </header>
+
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">← Back to Planner</a>
+            <a href="raid-finder.html" class="nav-link">🔍 Advanced Raid Finder</a>
+        </div>
+
+        <div class="stats-summary" id="statsSummary"></div>
+
+        <div class="filter-controls">
+            <div class="filter-group">
+                <label for="filterClass">Filter by Class:</label>
+                <select id="filterClass">
+                    <option value="">All Classes</option>
+                    <option value="Blade Warden">Blade Warden</option>
+                    <option value="Twin Striker">Twin Striker</option>
+                    <option value="Blast Archer">Blast Archer</option>
+                    <option value="Spell Caster">Spell Caster</option>
+                    <option value="Heavy Smasher">Heavy Smasher</option>
+                    <option value="Aegis Fighter">Aegis Fighter</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filterMinGS">Min Gear Score:</label>
+                <input type="number" id="filterMinGS" placeholder="0" min="0">
+            </div>
+            <div class="filter-group">
+                <label for="filterDay">Available on Day:</label>
+                <select id="filterDay">
+                    <option value="">Any Day</option>
+                    <option value="Monday">Monday</option>
+                    <option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option>
+                    <option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option>
+                    <option value="Saturday">Saturday</option>
+                    <option value="Sunday">Sunday</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="searchName">Search Name:</label>
+                <input type="text" id="searchName" placeholder="Player name...">
+            </div>
+            <div class="filter-group">
+                <label>&nbsp;</label>
+                <button class="btn-primary" onclick="applyFilters()">Apply Filters</button>
+            </div>
+            <div class="filter-group">
+                <label>&nbsp;</label>
+                <button class="btn-secondary" onclick="clearFilters()">Clear</button>
+            </div>
+        </div>
+
+        <div class="players-table-container">
+            <table class="players-table" id="playersTable">
+                <thead>
+                    <tr>
+                        <th>Player Name</th>
+                        <th>Class</th>
+                        <th>Gear Score</th>
+                        <th>Total Hours Available</th>
+                        <th>Weekly Availability</th>
+                        <th>Most Active Day</th>
+                        <th>Peak Hours</th>
+                        <th>Last Updated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="playersTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const STORAGE_KEY = 'bpsr_players';
+        const ADMIN_KEY = 'bond'; // Secret admin key
+        
+        // Check if admin mode is enabled
+        function isAdminMode() {
+            return localStorage.getItem('adminKey') === ADMIN_KEY;
+        }
+
+        function loadPlayers() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            console.log('Loading players data:', data);
+            return data ? JSON.parse(data) : {};
+        }
+
+        function renderStats() {
+            const players = loadPlayers();
+            const playerNames = Object.keys(players);
+            
+            console.log('Rendering stats for', playerNames.length, 'players');
+            
+            if (playerNames.length === 0) {
+                document.getElementById('statsSummary').innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; background: white; border-radius: 10px; border: 2px dashed #dee2e6;">
+                        <h2 style="color: #666; margin-bottom: 15px;">No Players Registered Yet</h2>
+                        <p style="color: #999; margin-bottom: 20px;">Add players in the main planner to see statistics and overview here.</p>
+                        <a href="index.html" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 5px; font-weight: 600;">
+                            Go to Main Planner →
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            let totalHours = 0;
+            const classCounts = {};
+            let totalGearScore = 0;
+
+            playerNames.forEach(name => {
+                const player = players[name];
+                Object.values(player.availability).forEach(hours => {
+                    totalHours += hours.length;
+                });
+                classCounts[player.class] = (classCounts[player.class] || 0) + 1;
+                totalGearScore += player.gearScore;
+            });
+
+            const avgGearScore = Math.round(totalGearScore / playerNames.length);
+            const avgHours = Math.round(totalHours / playerNames.length);
+            const mostPopularClass = Object.keys(classCounts).reduce((a, b) => 
+                classCounts[a] > classCounts[b] ? a : b
+            );
+
+            document.getElementById('statsSummary').innerHTML = `
+                <div class="stat-box">
+                    <div class="stat-number">${playerNames.length}</div>
+                    <div class="stat-label">Total Players</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">${avgGearScore}</div>
+                    <div class="stat-label">Avg Gear Score</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">${avgHours}</div>
+                    <div class="stat-label">Avg Hours/Player</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">${mostPopularClass.split(' ')[0]}</div>
+                    <div class="stat-label">Most Popular Class</div>
+                </div>
+            `;
+        }
+
+        function renderPlayersTable(filteredPlayers = null) {
+            const tbody = document.getElementById('playersTableBody');
+            const players = filteredPlayers || loadPlayers();
+            const playerNames = Object.keys(players);
+
+            console.log('Rendering table for', playerNames.length, 'players');
+
+            if (playerNames.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 60px; color: #666;">
+                            <h3 style="margin-bottom: 15px;">No players found</h3>
+                            <p style="margin-bottom: 20px;">Add players in the main planner or adjust your filters.</p>
+                            <a href="index.html" style="display: inline-block; padding: 12px 24px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; font-weight: 600;">
+                                Go to Main Planner
+                            </a>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = '';
+
+            playerNames.sort().forEach(name => {
+                const player = players[name];
+                
+                // Calculate stats
+                let totalHours = 0;
+                const dayHours = {};
+                DAYS.forEach(day => {
+                    const hours = player.availability[day] || [];
+                    dayHours[day] = hours.length;
+                    totalHours += hours.length;
+                });
+
+                const mostActiveDay = Object.keys(dayHours).reduce((a, b) => 
+                    dayHours[a] > dayHours[b] ? a : b
+                );
+
+                // Find peak hours (hours available on most days)
+                const hourCounts = {};
+                Object.values(player.availability).forEach(hours => {
+                    hours.forEach(h => {
+                        hourCounts[h] = (hourCounts[h] || 0) + 1;
+                    });
+                });
+
+                const peakHours = Object.keys(hourCounts)
+                    .sort((a, b) => hourCounts[b] - hourCounts[a])
+                    .slice(0, 3)
+                    .map(serverHour => {
+                        const localHour = getLocalHourFromServerHour(parseInt(serverHour));
+                        return `${localHour.toString().padStart(2, '0')}:00`;
+                    })
+                    .join(', ');
+
+                const lastUpdated = player.lastUpdated 
+                    ? new Date(player.lastUpdated).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric',
+                        year: 'numeric'
+                    })
+                    : 'Unknown';
+
+                // Create heatmap
+                let heatmapHTML = '<div class="availability-heatmap">';
+                DAYS.forEach(day => {
+                    const hours = dayHours[day];
+                    let cellClass = 'empty';
+                    if (hours > 0 && hours < 6) cellClass = 'low';
+                    else if (hours >= 6 && hours < 12) cellClass = 'medium';
+                    else if (hours >= 12) cellClass = 'high';
+                    
+                    heatmapHTML += `<div class="heatmap-cell ${cellClass}" title="${day}: ${hours} hours"></div>`;
+                });
+                heatmapHTML += '</div>';
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${player.name}</strong></td>
+                    <td><span class="class-badge">${player.class}</span></td>
+                    <td><strong>${player.gearScore}</strong></td>
+                    <td>${totalHours} hours</td>
+                    <td>${heatmapHTML}</td>
+                    <td>${mostActiveDay} (${dayHours[mostActiveDay]}h)</td>
+                    <td>${peakHours || 'N/A'}</td>
+                    <td>${lastUpdated}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-sm btn-edit" onclick="editPlayer('${player.name}')">✏️ Edit</button>
+                            ${isAdminMode() ? `<button class="btn-sm btn-delete" onclick="deletePlayer('${player.name}')">🗑️</button>` : ''}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function applyFilters() {
+            const players = loadPlayers();
+            const filterClass = document.getElementById('filterClass').value;
+            const filterMinGS = parseInt(document.getElementById('filterMinGS').value) || 0;
+            const filterDay = document.getElementById('filterDay').value;
+            const searchName = document.getElementById('searchName').value.toLowerCase();
+
+            const filtered = {};
+
+            Object.keys(players).forEach(name => {
+                const player = players[name];
+                
+                // Apply filters
+                if (filterClass && player.class !== filterClass) return;
+                if (player.gearScore < filterMinGS) return;
+                if (filterDay && (!player.availability[filterDay] || player.availability[filterDay].length === 0)) return;
+                if (searchName && !player.name.toLowerCase().includes(searchName)) return;
+
+                filtered[name] = player;
+            });
+
+            renderPlayersTable(filtered);
+        }
+
+        function clearFilters() {
+            document.getElementById('filterClass').value = '';
+            document.getElementById('filterMinGS').value = '';
+            document.getElementById('filterDay').value = '';
+            document.getElementById('searchName').value = '';
+            renderPlayersTable();
+        }
+
+        function editPlayer(name) {
+            window.location.href = `index.html?edit=${encodeURIComponent(name)}`;
+        }
+
+        function deletePlayer(name) {
+            if (!isAdminMode()) {
+                alert('Admin access required to delete players.');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete ${name}?`)) return;
+            
+            const players = loadPlayers();
+            delete players[name];
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
+            
+            renderStats();
+            renderPlayersTable();
+        }
+
+        // Timezone functions
+        let selectedTimezone = 'auto';
+
+        function isSummerTime() {
+            const now = new Date();
+            const month = now.getMonth();
+            return month >= 3 && month <= 9;
+        }
+
+        function getLocalHourFromServerHour(serverHour) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            const day = now.getDate();
+            
+            const berlinDate = new Date(year, month, day, 9, 0, 0);
+            const berlinUTC = berlinDate.getTime() - (isSummerTime() ? 2 : 1) * 60 * 60 * 1000;
+            const serverUTC = berlinUTC;
+            const serverDate = new Date(serverUTC + serverHour * 60 * 60 * 1000);
+            
+            if (selectedTimezone === 'auto') {
+                return serverDate.getHours();
+            } else {
+                const formatter = new Intl.DateTimeFormat('en-US', {
+                    timeZone: selectedTimezone,
+                    hour: 'numeric',
+                    hour12: false
+                });
+                const localHour = parseInt(formatter.format(serverDate));
+                return localHour;
+            }
+        }
+
+        function showTimezonePopup() {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-popup">
+                    <button class="modal-close-btn" onclick="this.closest('.modal-overlay').remove()">×</button>
+                    <h3>🌍 Timezone Settings</h3>
+                    
+                    <div class="time-display-popup">
+                        <div style="margin-bottom: 10px; color: var(--text-secondary);">Current Time</div>
+                        <div class="time" id="popupLocalTime">--:--:--</div>
+                        <div style="margin-top: 5px; color: var(--text-secondary);">
+                            <span id="popupTimezoneLabel">Loading...</span>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 0.9em; color: var(--text-secondary);">
+                            Server Time: <strong id="popupServerTime">--:--:--</strong>
+                        </div>
+                        <div style="margin-top: 5px; font-size: 0.85em; color: var(--text-tertiary);" id="popupDstIndicator">
+                            Detecting season...
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="popupTimezoneSelect">Select Timezone:</label>
+                        <select id="popupTimezoneSelect" class="form-control">
+                            <option value="auto">Auto-detect (${Intl.DateTimeFormat().resolvedOptions().timeZone})</option>
+                            <optgroup label="Americas">
+                                <option value="America/New_York">New York (EST/EDT)</option>
+                                <option value="America/Chicago">Chicago (CST/CDT)</option>
+                                <option value="America/Denver">Denver (MST/MDT)</option>
+                                <option value="America/Los_Angeles">Los Angeles (PST/PDT)</option>
+                                <option value="America/Phoenix">Phoenix (MST)</option>
+                                <option value="America/Anchorage">Anchorage (AKST)</option>
+                                <option value="America/Toronto">Toronto (EST/EDT)</option>
+                                <option value="America/Vancouver">Vancouver (PST/PDT)</option>
+                                <option value="America/Mexico_City">Mexico City (CST)</option>
+                                <option value="America/Sao_Paulo">São Paulo (BRT)</option>
+                                <option value="America/Argentina/Buenos_Aires">Buenos Aires (ART)</option>
+                            </optgroup>
+                            <optgroup label="Europe">
+                                <option value="Europe/London">London (GMT/BST)</option>
+                                <option value="Europe/Paris">Paris (CET/CEST)</option>
+                                <option value="Europe/Berlin">Berlin (CET/CEST)</option>
+                                <option value="Europe/Madrid">Madrid (CET/CEST)</option>
+                                <option value="Europe/Rome">Rome (CET/CEST)</option>
+                                <option value="Europe/Amsterdam">Amsterdam (CET/CEST)</option>
+                                <option value="Europe/Brussels">Brussels (CET/CEST)</option>
+                                <option value="Europe/Vienna">Vienna (CET/CEST)</option>
+                                <option value="Europe/Stockholm">Stockholm (CET/CEST)</option>
+                                <option value="Europe/Warsaw">Warsaw (CET/CEST)</option>
+                                <option value="Europe/Athens">Athens (EET/EEST)</option>
+                                <option value="Europe/Istanbul">Istanbul (TRT)</option>
+                                <option value="Europe/Moscow">Moscow (MSK)</option>
+                            </optgroup>
+                            <optgroup label="Asia">
+                                <option value="Asia/Dubai">Dubai (GST)</option>
+                                <option value="Asia/Kolkata">Mumbai (IST)</option>
+                                <option value="Asia/Bangkok">Bangkok (ICT)</option>
+                                <option value="Asia/Singapore">Singapore (SGT)</option>
+                                <option value="Asia/Jakarta">Jakarta (WIB)</option>
+                                <option value="Asia/Hong_Kong">Hong Kong (HKT)</option>
+                                <option value="Asia/Shanghai">Shanghai (CST)</option>
+                                <option value="Asia/Taipei">Taipei (CST)</option>
+                                <option value="Asia/Manila">Manila (PHT)</option>
+                                <option value="Asia/Tokyo">Tokyo (JST)</option>
+                                <option value="Asia/Seoul">Seoul (KST)</option>
+                            </optgroup>
+                            <optgroup label="Oceania">
+                                <option value="Australia/Perth">Perth (AWST)</option>
+                                <option value="Australia/Sydney">Sydney (AEDT/AEST)</option>
+                                <option value="Australia/Melbourne">Melbourne (AEDT/AEST)</option>
+                                <option value="Pacific/Auckland">Auckland (NZST)</option>
+                                <option value="Pacific/Fiji">Fiji (FJT)</option>
+                                <option value="Pacific/Honolulu">Honolulu (HST)</option>
+                            </optgroup>
+                            <optgroup label="Africa">
+                                <option value="Africa/Cairo">Cairo (EET)</option>
+                                <option value="Africa/Johannesburg">Johannesburg (SAST)</option>
+                                <option value="Africa/Lagos">Lagos (WAT)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    
+                    <h4 style="margin-top: 25px; margin-bottom: 15px; color: var(--text-primary);">Conversion Examples:</h4>
+                    <div class="conversion-grid" id="popupConversions"></div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            const timezoneSelect = document.getElementById('popupTimezoneSelect');
+            timezoneSelect.value = selectedTimezone;
+            
+            updatePopupTimes();
+            const interval = setInterval(updatePopupTimes, 1000);
+            
+            timezoneSelect.addEventListener('change', () => {
+                selectedTimezone = timezoneSelect.value;
+                localStorage.setItem('selectedTimezone', selectedTimezone);
+                updatePopupTimes();
+                renderPlayersTable(); // Re-render to show new timezone
+            });
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    clearInterval(interval);
+                    modal.remove();
+                }
+            });
+        }
+
+        function updatePopupTimes() {
+            const now = new Date();
+            
+            // Display time in selected timezone
+            let timeString;
+            if (selectedTimezone === 'auto') {
+                timeString = now.toLocaleTimeString('en-US', { hour12: false });
+            } else {
+                timeString = now.toLocaleTimeString('en-US', { 
+                    timeZone: selectedTimezone,
+                    hour12: false 
+                });
+            }
+            
+            const serverTime = new Date(now.getTime() - (isSummerTime() ? 2 : 1) * 60 * 60 * 1000 + 9 * 60 * 60 * 1000);
+            const serverHour = serverTime.getUTCHours();
+            const serverMin = serverTime.getUTCMinutes();
+            const serverSec = serverTime.getUTCSeconds();
+            const serverTimeString = `${String(serverHour).padStart(2, '0')}:${String(serverMin).padStart(2, '0')}:${String(serverSec).padStart(2, '0')}`;
+            
+            document.getElementById('popupLocalTime').textContent = timeString;
+            document.getElementById('popupServerTime').textContent = serverTimeString;
+            
+            const tzLabel = selectedTimezone === 'auto' ? 
+                Intl.DateTimeFormat().resolvedOptions().timeZone : 
+                selectedTimezone;
+            document.getElementById('popupTimezoneLabel').textContent = tzLabel;
+            
+            const dstIndicator = isSummerTime() ? 
+                '☀️ Currently using Summer Time (DST)' : 
+                '❄️ Currently using Winter Time (Standard Time)';
+            document.getElementById('popupDstIndicator').textContent = dstIndicator;
+            
+            // Update conversion examples
+            const conversionsDiv = document.getElementById('popupConversions');
+            if (conversionsDiv) {
+                let html = '';
+                for (let i = 0; i < 24; i += 3) {
+                    const localHour = getLocalHourFromServerHour(i);
+                    html += `
+                        <div class="conversion-item">
+                            <div class="conversion-item-local">${String(localHour).padStart(2, '0')}:00</div>
+                            <div class="conversion-item-server">Server: ${String(i).padStart(2, '0')}:00</div>
+                        </div>
+                    `;
+                }
+                conversionsDiv.innerHTML = html;
+            }
+        }
+
+        // Dark mode toggle (default is dark)
+        function toggleDarkMode() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            localStorage.setItem('lightMode', isLight);
+            document.querySelector('.dark-mode-toggle').textContent = isLight ? '🌙' : '☀️';
+        }
+
+        // Load theme preference (default to dark mode)
+        if (localStorage.getItem('lightMode') === 'true') {
+            document.body.classList.add('light-mode');
+            document.querySelector('.dark-mode-toggle').textContent = '🌙';
+        } else {
+            document.querySelector('.dark-mode-toggle').textContent = '☀️';
+        }
+
+        if (localStorage.getItem('selectedTimezone')) {
+            selectedTimezone = localStorage.getItem('selectedTimezone');
+        }
+
+        // Admin key listener
+        let keyBuffer = '';
+        document.addEventListener('keypress', (e) => {
+            keyBuffer += e.key.toLowerCase();
+            if (keyBuffer.length > ADMIN_KEY.length) {
+                keyBuffer = keyBuffer.slice(-ADMIN_KEY.length);
+            }
+            if (keyBuffer === ADMIN_KEY) {
+                if (!isAdminMode()) {
+                    localStorage.setItem('adminKey', ADMIN_KEY);
+                    alert('Admin mode activated! Delete buttons are now visible.');
+                    renderPlayersTable(); // Refresh to show delete buttons
+                }
+                keyBuffer = '';
+            }
+        });
+
+        // Initialize
+        renderStats();
+        renderPlayersTable();
+    </script>
+</body>
+</html>
