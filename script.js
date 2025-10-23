@@ -6,9 +6,7 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0-23 hours
 const STORAGE_KEY = 'bpsr_players';
 const ADMIN_KEY = 'bond'; // Secret admin key
-const GITHUB_REPO = 'Smoothzy/bpsr-planner'; // Your repository
-const DATA_FILE = 'players.json'; // File to store data
-const GITHUB_API = 'https://api.github.com';
+const API_URL = window.location.origin; // Use current origin (works locally and deployed)
 
 // Server time reference: 9:00 AM CEST (UTC+2 in summer, UTC+1 in winter)
 // For simplicity, we'll use UTC+2 as the base (CEST summer time)
@@ -287,6 +285,9 @@ function saveCurrentPlayer() {
     
     savePlayers(players);
     
+    // Also save to server
+    saveToServer();
+    
     alert(`Player ${name} saved successfully!`);
     renderPlayersList();
     calculateBestTimes();
@@ -328,6 +329,9 @@ function deletePlayer(name) {
     const players = loadPlayers();
     delete players[name];
     savePlayers(players);
+    
+    // Also delete from server
+    saveToServer();
     
     if (currentPlayer && currentPlayer.name === name) {
         clearForm();
@@ -757,22 +761,16 @@ function calculateBestTimes() {
 }
 
 // ============================================
-// GitHub File Storage Functions
+// Backend API Functions
 // ============================================
 
-async function loadFromGitHub() {
-    showSyncStatus('Loading from repository...', 'loading');
+async function loadFromServer() {
+    showSyncStatus('Loading from server...', 'loading');
     
     try {
-        // Try to fetch the players.json file from the repository
-        const response = await fetch(`https://raw.githubusercontent.com/${GITHUB_REPO}/main/${DATA_FILE}`);
+        const response = await fetch(`${API_URL}/api/players`);
         
         if (!response.ok) {
-            // File doesn't exist yet, use empty data
-            if (response.status === 404) {
-                showSyncStatus('No saved data found in repository yet.', 'info');
-                return;
-            }
             throw new Error(`Failed to load: ${response.status}`);
         }
         
@@ -795,41 +793,46 @@ async function loadFromGitHub() {
         renderPlayersList();
         calculateBestTimes();
         
-        showSyncStatus(`✅ Successfully loaded ${Object.keys(players).length} players from repository!`, 'success');
+        const count = Object.keys(players).length;
+        if (count > 0) {
+            showSyncStatus(`✅ Loaded ${count} player${count !== 1 ? 's' : ''} from server`, 'success');
+        } else {
+            showSyncStatus('📝 No players saved yet. Add some players to get started!', 'info');
+        }
     } catch (error) {
-        showSyncStatus(`Error loading: ${error.message}`, 'error');
+        showSyncStatus(`⚠️ Server unavailable. Using local data only.`, 'error');
         console.error('Load error:', error);
     }
 }
 
-async function saveToGitHub() {
-    showSyncStatus('⚠️ Manual save required', 'info');
+async function saveToServer() {
+    showSyncStatus('Saving to server...', 'loading');
     
-    const players = loadPlayers();
-    const dataStr = JSON.stringify(players, null, 2);
-    
-    // Create a downloadable file
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'players.json';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    // Show instructions
-    alert(
-        '📥 File downloaded as "players.json"\n\n' +
-        'To save to Git:\n' +
-        '1. The file has been downloaded\n' +
-        '2. Replace the existing players.json in your repository\n' +
-        '3. Commit and push to GitHub\n' +
-        '4. Everyone will get the updates automatically!'
-    );
-    
-    showSyncStatus('✅ File downloaded! Follow the instructions to commit to Git.', 'success');
+    try {
+        const players = loadPlayers();
+        
+        const response = await fetch(`${API_URL}/api/players`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(players)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to save: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        showSyncStatus(`✅ Saved ${result.playerCount} player${result.playerCount !== 1 ? 's' : ''} to server!`, 'success');
+        
+        // Reload to get any merged data from server
+        await loadFromServer();
+    } catch (error) {
+        showSyncStatus(`❌ Error saving to server: ${error.message}`, 'error');
+        console.error('Save error:', error);
+    }
 }
 
 function showSyncStatus(message, type = 'info') {
@@ -896,9 +899,30 @@ document.getElementById('timezoneSelect').addEventListener('change', (e) => {
     calculateBestTimes(); // Re-calculate best times in new timezone
 });
 
-// GitHub storage button event listeners
-document.getElementById('syncLoad').addEventListener('click', loadFromGitHub);
-document.getElementById('syncSave').addEventListener('click', saveToGitHub);
+// Server sync button event listeners
+document.getElementById('syncLoad').addEventListener('click', loadFromServer);
+document.getElementById('syncSave').addEventListener('click', saveToServer);
+
+// Auto-sync functionality
+let autoSyncInterval = null;
+
+function startAutoSync() {
+    // Load immediately
+    loadFromServer();
+    
+    // Then load every 30 seconds
+    if (autoSyncInterval) {
+        clearInterval(autoSyncInterval);
+    }
+    autoSyncInterval = setInterval(loadFromServer, 30000);
+}
+
+function stopAutoSync() {
+    if (autoSyncInterval) {
+        clearInterval(autoSyncInterval);
+        autoSyncInterval = null;
+    }
+}
 
 // Initialize
 function init() {
@@ -909,8 +933,8 @@ function init() {
     calculateBestTimes();
     updateTimeDisplays();
     
-    // Auto-load from GitHub on page load
-    loadFromGitHub();
+    // Start auto-sync
+    startAutoSync();
     
     // Update time displays every second
     setInterval(updateTimeDisplays, 1000);

@@ -1,0 +1,23 @@
+{
+  "name": "bpsr-planner",
+  "version": "1.0.0",
+  "description": "Blue Protocol Star Resonance Raid Planner with backend server",
+  "main": "server.js",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": ["blue-protocol", "raid-planner", "gaming"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

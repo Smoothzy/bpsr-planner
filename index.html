@@ -167,8 +167,8 @@
         </div>
 
         <div class="sync-section" style="background: var(--card-bg); padding: 20px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px var(--shadow);">
-            <h2>� Import / Export Data</h2>
-            <p class="instruction">Save your raid planner data to a file or load data from a file to share with your group!</p>
+            <h2>🔄 Automatic Server Sync</h2>
+            <p class="instruction">Your data is automatically saved and synced to the server in real-time!</p>
             
             <div class="sync-status" id="syncStatus" style="padding: 10px; margin: 10px 0; border-radius: 5px; display: none;">
                 <span id="syncStatusIcon"></span>
@@ -176,21 +176,21 @@
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
-                <button id="syncLoad" class="btn-primary">� Reload from Git</button>
-                <button id="syncSave" class="btn-secondary">� Download for Commit</button>
+                <button id="syncLoad" class="btn-primary">🔄 Reload from Server</button>
+                <button id="syncSave" class="btn-secondary">💾 Force Save to Server</button>
             </div>
 
             <div style="margin-top: 15px; padding: 15px; background: var(--bg-secondary); border-radius: 8px; border-left: 4px solid var(--accent-primary);">
-                <strong style="color: var(--text-primary);">� How to share with your raid group:</strong>
-                <ol style="margin: 10px 0 0 20px; color: var(--text-secondary); line-height: 1.8;">
-                    <li>Data automatically loads from <code>players.json</code> in the repository</li>
-                    <li>Make your changes (add/edit players)</li>
-                    <li>Click "Download for Commit" to get the updated <code>players.json</code></li>
-                    <li>Replace the old <code>players.json</code> in your repo and commit/push</li>
-                    <li>Everyone else automatically gets the updates when they refresh the page!</li>
-                </ol>
+                <strong style="color: var(--text-primary);">✨ How automatic sync works:</strong>
+                <ul style="margin: 10px 0 0 20px; color: var(--text-secondary); line-height: 1.8;">
+                    <li>✅ <strong>Auto-save:</strong> When you add or update a player, data is automatically saved to the server</li>
+                    <li>🔄 <strong>Auto-load:</strong> Data is automatically loaded from the server every 30 seconds</li>
+                    <li>🌐 <strong>Everyone synced:</strong> All players see the same data in real-time</li>
+                    <li>🔒 <strong>Smart merge:</strong> The server keeps the newest version if there are conflicts</li>
+                    <li>💾 <strong>Backup:</strong> Data is also saved locally in your browser for offline access</li>
+                </ul>
                 <div style="margin-top: 10px; padding: 10px; background: var(--bg-tertiary); border-radius: 5px; color: var(--text-secondary);">
-                    <strong>📁 Data file:</strong> <code>players.json</code> in repository root
+                    <strong>� Server Status:</strong> <span style="color: var(--accent-success);">● Connected</span> - Auto-sync active
                 </div>
             </div>
         </div>
