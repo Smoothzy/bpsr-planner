@@ -7,6 +7,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'players.json');
 
+// Sanitize function to prevent XSS
+function sanitizeName(name) {
+    if (!name || typeof name !== 'string') return '';
+    // Remove any HTML tags and script content
+    return name.replace(/<[^>]*>/g, '').trim();
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -55,17 +62,24 @@ app.post('/api/players', async (req, res) => {
         // Merge with existing data (keep newer entries)
         const merged = { ...currentData };
         Object.keys(players).forEach(name => {
+            // Sanitize player name to prevent XSS
+            const sanitizedName = sanitizeName(name);
+            if (!sanitizedName) return; // Skip empty names
+            
             const newPlayer = players[name];
-            const existingPlayer = merged[name];
+            // Update the name in the player object too
+            newPlayer.name = sanitizedName;
+            
+            const existingPlayer = merged[sanitizedName];
             
             if (!existingPlayer) {
-                merged[name] = newPlayer;
+                merged[sanitizedName] = newPlayer;
             } else {
                 const newTime = new Date(newPlayer.lastUpdated || 0).getTime();
                 const existingTime = new Date(existingPlayer.lastUpdated || 0).getTime();
                 
                 if (newTime > existingTime) {
-                    merged[name] = newPlayer;
+                    merged[sanitizedName] = newPlayer;
                 }
             }
         });
