@@ -428,7 +428,7 @@
                 const players = await response.json();
                 playersCache = players;
                 console.log('Loaded players from server:', players);
-                findBestRaidTimes();
+                findRaidTimes();
             } catch (error) {
                 console.error('Error loading from server:', error);
                 alert('Could not load player data from server. Please refresh the page.');
