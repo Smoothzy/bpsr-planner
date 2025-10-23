@@ -182,7 +182,7 @@
 
             <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
                 <button id="syncLoad" class="btn-primary">⟳ Reload from Server</button>
-                <button id="syncSave" class="btn-secondary">▲ Force Save to Server</button>
+                <button id="syncSave" class="btn-secondary" style="display: none;">▲ Force Save to Server</button>
             </div>
 
             <div style="margin-top: 15px; padding: 15px; background: var(--bg-secondary); border-radius: 8px; border-left: 4px solid var(--accent-primary);">
@@ -191,8 +191,8 @@
                     <li>▸ <strong>Auto-save:</strong> When you add or update a player, data is automatically saved to the server</li>
                     <li>▸ <strong>Auto-load:</strong> Data is automatically loaded from the server every 30 seconds</li>
                     <li>▸ <strong>Everyone synced:</strong> All players see the same data in real-time</li>
-                    <li>▸ <strong>Smart merge:</strong> The server keeps the newest version if there are conflicts</li>
-                    <li>▸ <strong>Backup:</strong> Data is also saved locally in your browser for offline access</li>
+                    <li>▸ <strong>Server-only:</strong> All data is stored on the server - no local copies</li>
+                    <li>▸ <strong>Always fresh:</strong> You always see the latest data from everyone</li>
                 </ul>
                 <div style="margin-top: 10px; padding: 10px; background: var(--bg-tertiary); border-radius: 5px; color: var(--text-secondary);">
                     <strong>� Server Status:</strong> <span style="color: var(--accent-success);">● Connected</span> - Auto-sync active

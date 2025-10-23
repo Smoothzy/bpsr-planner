@@ -16,6 +16,7 @@ const SERVER_TIME_OFFSET = -7; // 9:00 CEST = 7:00 UTC, server time 0:00 = -7 ho
 let currentPlayer = null;
 let selectedTimezone = 'auto';
 let availabilityGrid = {};
+let playersCache = {}; // In-memory cache for player data (server is source of truth)
 
 // Drag selection state
 let isDragging = false;
@@ -238,14 +239,13 @@ function updateGridTooltips() {
     });
 }
 
-// Storage functions
+// Storage functions (server-only, no localStorage for player data)
 function savePlayers(players) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
+    playersCache = players; // Update in-memory cache only
 }
 
 function loadPlayers() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : {};
+    return playersCache || {}; // Return from in-memory cache
 }
 
 function saveCurrentPlayer() {
@@ -455,6 +455,12 @@ function renderPlayersList() {
     const container = document.getElementById('playersList');
     const players = loadPlayers();
     const playerNames = Object.keys(players);
+    
+    // Show/hide Force Save button based on admin mode
+    const forceSaveBtn = document.getElementById('syncSave');
+    if (forceSaveBtn) {
+        forceSaveBtn.style.display = isAdminMode() ? 'inline-block' : 'none';
+    }
     
     if (playerNames.length === 0) {
         container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No players registered yet. Add your first player above!</p>';
@@ -776,20 +782,8 @@ async function loadFromServer() {
         
         const players = await response.json();
         
-        // Merge with local data (keep newer entries)
-        const localPlayers = loadPlayers();
-        const merged = { ...players };
-        
-        Object.keys(localPlayers).forEach(name => {
-            const localTime = new Date(localPlayers[name].lastUpdated || 0).getTime();
-            const remoteTime = merged[name] ? new Date(merged[name].lastUpdated || 0).getTime() : 0;
-            
-            if (localTime > remoteTime) {
-                merged[name] = localPlayers[name];
-            }
-        });
-        
-        savePlayers(merged);
+        // Save to in-memory cache only (no localStorage)
+        savePlayers(players);
         renderPlayersList();
         calculateBestTimes();
         
@@ -800,7 +794,7 @@ async function loadFromServer() {
             showSyncStatus('No players saved yet. Add some players to get started!', 'info');
         }
     } catch (error) {
-        showSyncStatus(`Server unavailable. Using local data only.`, 'error');
+        showSyncStatus(`Server unavailable. Cannot load player data.`, 'error');
         console.error('Load error:', error);
     }
 }
@@ -983,8 +977,8 @@ function init() {
         if (keyBuffer === ADMIN_KEY) {
             if (!isAdminMode()) {
                 localStorage.setItem('adminKey', ADMIN_KEY);
-                alert('Admin mode activated! Delete buttons are now visible.');
-                renderPlayersList(); // Refresh to show delete buttons
+                alert('Admin mode activated! Delete buttons and force save are now visible.');
+                renderPlayersList(); // Refresh to show delete buttons and force save
             }
             keyBuffer = '';
         }
