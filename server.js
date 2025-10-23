@@ -5,7 +5,10 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, 'players.json');
+
+// Use Railway's persistent volume if available, otherwise use local directory
+const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || __dirname;
+const DATA_FILE = path.join(DATA_DIR, 'players.json');
 
 // Sanitize function to prevent XSS
 function sanitizeName(name) {
