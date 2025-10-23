@@ -409,13 +409,30 @@
     <script>
         const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         const STORAGE_KEY = 'bpsr_players';
+        const API_URL = 'https://web-production-af38.up.railway.app'; // Railway backend server
         let selectedTimezone = 'auto';
         let currentView = 'list';
+        let playersCache = {}; // In-memory cache
 
         function loadPlayers() {
-            const data = localStorage.getItem(STORAGE_KEY);
-            console.log('Loading players data:', data);
-            return data ? JSON.parse(data) : {};
+            console.log('Loading players data from cache:', playersCache);
+            return playersCache || {};
+        }
+        
+        async function loadFromServer() {
+            try {
+                const response = await fetch(`${API_URL}/api/players`);
+                if (!response.ok) {
+                    throw new Error(`Failed to load: ${response.status}`);
+                }
+                const players = await response.json();
+                playersCache = players;
+                console.log('Loaded players from server:', players);
+                findBestRaidTimes();
+            } catch (error) {
+                console.error('Error loading from server:', error);
+                alert('Could not load player data from server. Please refresh the page.');
+            }
         }
 
         function isSummerTime() {
@@ -1008,8 +1025,8 @@
             document.querySelector('.dark-mode-toggle').textContent = '☀️';
         }
 
-        // Initialize
-        findRaidTimes();
+        // Initialize - load from server
+        loadFromServer();
     </script>
 </body>
 </html>

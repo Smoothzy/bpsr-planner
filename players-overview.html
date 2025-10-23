@@ -314,6 +314,9 @@
         const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         const STORAGE_KEY = 'bpsr_players';
         const ADMIN_KEY = 'bond'; // Secret admin key
+        const API_URL = 'https://web-production-af38.up.railway.app'; // Railway backend server
+        
+        let playersCache = {}; // In-memory cache
         
         // Check if admin mode is enabled
         function isAdminMode() {
@@ -321,9 +324,26 @@
         }
 
         function loadPlayers() {
-            const data = localStorage.getItem(STORAGE_KEY);
-            console.log('Loading players data:', data);
-            return data ? JSON.parse(data) : {};
+            console.log('Loading players data from cache:', playersCache);
+            return playersCache || {};
+        }
+        
+        async function loadFromServer() {
+            try {
+                const response = await fetch(`${API_URL}/api/players`);
+                if (!response.ok) {
+                    throw new Error(`Failed to load: ${response.status}`);
+                }
+                const players = await response.json();
+                playersCache = players;
+                console.log('Loaded players from server:', players);
+                renderStats();
+                renderPlayersTable();
+                renderAvailabilityHeatmap();
+            } catch (error) {
+                console.error('Error loading from server:', error);
+                alert('Could not load player data from server. Please refresh the page.');
+            }
         }
 
         function renderStats() {
@@ -501,7 +521,7 @@
             window.location.href = `index.html?edit=${encodeURIComponent(name)}`;
         }
 
-        function deletePlayer(name) {
+        async function deletePlayer(name) {
             if (!isAdminMode()) {
                 alert('Admin access required to delete players.');
                 return;
@@ -509,12 +529,21 @@
             
             if (!confirm(`Are you sure you want to delete ${name}?`)) return;
             
-            const players = loadPlayers();
-            delete players[name];
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
-            
-            renderStats();
-            renderPlayersTable();
+            try {
+                const response = await fetch(`${API_URL}/api/players/${encodeURIComponent(name)}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to delete player');
+                }
+                
+                // Reload data from server
+                await loadFromServer();
+            } catch (error) {
+                console.error('Error deleting player:', error);
+                alert('Failed to delete player. Please try again.');
+            }
         }
 
         function showPlayerAvailabilityDetails(playerName) {
@@ -884,9 +913,8 @@
             }
         });
 
-        // Initialize
-        renderStats();
-        renderPlayersTable();
+        // Initialize - load from server
+        loadFromServer();
     </script>
 </body>
 </html>
