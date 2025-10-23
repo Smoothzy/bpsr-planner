@@ -897,26 +897,8 @@ document.getElementById('timezoneSelect').addEventListener('change', (e) => {
 document.getElementById('syncLoad').addEventListener('click', loadFromServer);
 document.getElementById('syncSave').addEventListener('click', saveToServer);
 
-// Auto-sync functionality
-let autoSyncInterval = null;
-
-function startAutoSync() {
-    // Load immediately
-    loadFromServer();
-    
-    // Then load every 30 seconds
-    if (autoSyncInterval) {
-        clearInterval(autoSyncInterval);
-    }
-    autoSyncInterval = setInterval(loadFromServer, 30000);
-}
-
-function stopAutoSync() {
-    if (autoSyncInterval) {
-        clearInterval(autoSyncInterval);
-        autoSyncInterval = null;
-    }
-}
+// Auto-sync functionality removed to reduce server load
+// Players can manually reload using the "Reload from Server" button
 
 // Initialize
 function init() {
@@ -927,8 +909,8 @@ function init() {
     calculateBestTimes();
     updateTimeDisplays();
     
-    // Start auto-sync
-    startAutoSync();
+    // Load once on page load (no auto-sync to reduce server load)
+    loadFromServer();
     
     // Update time displays every second
     setInterval(updateTimeDisplays, 1000);
