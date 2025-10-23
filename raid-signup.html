@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raid Signup - BPSR Planner</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dark-mode.css">
+    <style>
+        .raid-signup-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .raids-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .raid-card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 10px var(--shadow);
+            border: 2px solid var(--border-color);
+        }
+
+        .raid-card.scheduled {
+            border-left: 5px solid var(--accent-primary);
+        }
+
+        .raid-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .raid-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .raid-time {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .raid-status {
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .raid-status.open {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .raid-status.full {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .raid-status.closed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .signup-list {
+            margin: 15px 0;
+            min-height: 100px;
+        }
+
+        .signup-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: var(--bg-secondary);
+            border-radius: 5px;
+            border-left: 3px solid var(--accent-primary);
+        }
+
+        .signup-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .signup-number {
+            font-weight: 700;
+            color: var(--accent-primary);
+            min-width: 30px;
+        }
+
+        .player-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .player-class {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .remove-btn {
+            padding: 5px 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+
+        .remove-btn:hover {
+            background: #c82333;
+        }
+
+        .signup-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .create-raid-section {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px var(--shadow);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 5px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 1em;
+        }
+
+        .signup-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        .player-search-container {
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+
+        .player-search {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .player-search:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .player-search::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .quick-select-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+
+        .quick-select-label {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+
+        .quick-select-dropdown {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 5px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.95em;
+            cursor: pointer;
+        }
+
+        .player-select-list {
+            overflow-y: auto;
+            margin: 10px 0;
+            flex: 1;
+            min-height: 200px;
+        }
+
+        .player-select-item {
+            padding: 15px;
+            margin: 8px 0;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .player-select-item:hover {
+            border-color: var(--accent-primary);
+            transform: translateX(5px);
+        }
+
+        .player-select-item.selected {
+            border-color: var(--accent-primary);
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .player-select-item.hidden {
+            display: none;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-shrink: 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle Light Mode">◐</button>
+    
+    <div class="raid-signup-container">
+        <header>
+            <h1>Rin·Izcorgiky Raid Signup</h1>
+            <p style="color: var(--text-secondary); margin-top: 10px;">Sign up for scheduled 20-man raids</p>
+        </header>
+
+        <div style="margin: 20px 0;">
+            <a href="index.html" class="btn-secondary">← Back to Planner</a>
+        </div>
+
+        <!-- Timezone Selector -->
+        <div style="background: var(--card-bg); padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px var(--shadow);">
+            <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <label for="timezoneSelect" style="font-weight: 600; display: block; margin-bottom: 5px;">Your Timezone:</label>
+                    <select id="timezoneSelect" style="padding: 8px; border: 2px solid var(--border-color); border-radius: 5px; background: var(--bg-primary); color: var(--text-primary); font-size: 1em;">
+                        <option value="auto">Auto-detect</option>
+                        <option value="America/New_York">EST (New York)</option>
+                        <option value="America/Chicago">CST (Chicago)</option>
+                        <option value="America/Denver">MST (Denver)</option>
+                        <option value="America/Los_Angeles">PST (Los Angeles)</option>
+                        <option value="America/Phoenix">MST (Phoenix)</option>
+                        <option value="Europe/London">GMT (London)</option>
+                        <option value="Europe/Paris">CET (Paris)</option>
+                        <option value="Europe/Berlin">CEST (Berlin)</option>
+                        <option value="Europe/Madrid">CET (Madrid)</option>
+                        <option value="Europe/Rome">CET (Rome)</option>
+                        <option value="Asia/Tokyo">JST (Tokyo)</option>
+                        <option value="Asia/Seoul">KST (Seoul)</option>
+                        <option value="Asia/Shanghai">CST (Shanghai)</option>
+                        <option value="Asia/Singapore">SGT (Singapore)</option>
+                        <option value="Australia/Sydney">AEST (Sydney)</option>
+                    </select>
+                </div>
+                <div style="color: var(--text-secondary); font-size: 0.9em;">
+                    <strong>Server Time Reference:</strong><br>
+                    9:00 AM CEST (Berlin summer) = 00:00 Server Time
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Raid Section (Admin Only) -->
+        <div class="create-raid-section" id="createRaidSection" style="display: none;">
+            <h2>Create New Raid</h2>
+            <form id="createRaidForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="raidDate">Date:</label>
+                        <input type="date" id="raidDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="raidTime">Time (Your Timezone):</label>
+                        <input type="time" id="raidTime" required>
+                        <small style="color: var(--text-secondary); display: block; margin-top: 5px;">
+                            Server Time: <span id="serverTimePreview">--:--</span>
+                        </small>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="raidDescription">Description (optional):</label>
+                        <input type="text" id="raidDescription" placeholder="e.g., Farm run, Practice, etc.">
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">Create Raid</button>
+            </form>
+        </div>
+
+        <!-- Raids List -->
+        <div id="raidsContainer" class="raids-grid"></div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <h2>No Raids Scheduled</h2>
+            <p>Check back later or contact an admin to schedule a raid!</p>
+        </div>
+    </div>
+
+    <!-- Signup Modal -->
+    <div id="signupModal" class="signup-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Select Your Player</h2>
+            </div>
+            
+            <div class="quick-select-container">
+                <span class="quick-select-label">Quick Select:</span>
+                <select id="quickPlayerSelect" class="quick-select-dropdown">
+                    <option value="">-- Choose a player --</option>
+                </select>
+            </div>
+            
+            <div class="player-search-container">
+                <input 
+                    type="text" 
+                    id="playerSearch" 
+                    class="player-search" 
+                    placeholder="🔍 Search by name or class..."
+                    autocomplete="off"
+                />
+            </div>
+            
+            <div id="playerSelectList" class="player-select-list"></div>
+            
+            <div class="modal-actions">
+                <button id="confirmSignup" class="btn-primary">Confirm Signup</button>
+                <button id="cancelSignup" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-detect API URL based on environment
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const API_URL = isLocalhost ? 'http://localhost:3000' : 'https://web-production-af38.up.railway.app';
+        const ADMIN_KEY = 'bond';
+        let playersCache = {};
+        let raidsCache = [];
+        let selectedRaidId = null;
+        let selectedPlayerName = null;
+        let selectedTimezone = 'auto';
+
+        // Timezone conversion functions (from main planner)
+        function getServerHourFromLocalHour(localHour, localMinute, dateString) {
+            // Convert local hour to server hour based on selected timezone
+            // Server time: 00:00 ST = 07:00 UTC
+            // Example: 9:00 CEST (UTC+2 in summer) = 07:00 UTC = 00:00 ST
+            
+            const [year, month, day] = dateString.split('-').map(Number);
+            
+            if (selectedTimezone === 'auto') {
+                // Use browser's local timezone
+                const localDate = new Date(year, month - 1, day, localHour, localMinute || 0, 0);
+                const utcHour = localDate.getUTCHours();
+                const utcMinute = localDate.getUTCMinutes();
+                const serverHour = (utcHour - 7 + 24) % 24;
+                return { hour: serverHour, minute: utcMinute };
+            } else {
+                // Create a date at the specified local time, then convert to UTC
+                // We'll use a trick: create the date string in ISO format but interpret it as the target timezone
+                const timeStr = `${localHour.toString().padStart(2, '0')}:${(localMinute || 0).toString().padStart(2, '0')}`;
+                
+                // Create two dates: one in UTC at the target local time, one converted properly
+                // This finds what UTC time corresponds to the desired local time
+                for (let utcHour = 0; utcHour < 48; utcHour++) { // Check 48 hours to handle date boundaries
+                    const testUtcHour = utcHour % 24;
+                    const testDay = day + Math.floor(utcHour / 24);
+                    const testDate = new Date(Date.UTC(year, month - 1, testDay, testUtcHour, localMinute || 0, 0));
+                    
+                    const testLocalHour = parseInt(testDate.toLocaleString('en-US', {
+                        timeZone: selectedTimezone,
+                        hour: 'numeric',
+                        hour12: false
+                    }), 10);
+                    
+                    const testLocalDay = parseInt(testDate.toLocaleString('en-US', {
+                        timeZone: selectedTimezone,
+                        day: 'numeric'
+                    }), 10);
+                    
+                    // Check if this UTC time gives us the desired local time on the desired day
+                    if (testLocalHour === localHour && testLocalDay === day) {
+                        const serverHour = (testUtcHour - 7 + 24) % 24;
+                        return { hour: serverHour, minute: localMinute || 0 };
+                    }
+                }
+                
+                // Fallback
+                return { hour: 0, minute: 0 };
+            }
+        }
+
+        function updateServerTimePreview() {
+            const timeInput = document.getElementById('raidTime');
+            const dateInput = document.getElementById('raidDate');
+            const preview = document.getElementById('serverTimePreview');
+            
+            if (timeInput.value && dateInput.value) {
+                const [hour, minute] = timeInput.value.split(':').map(Number);
+                const serverTime = getServerHourFromLocalHour(hour, minute, dateInput.value);
+                preview.textContent = `${serverTime.hour.toString().padStart(2, '0')}:${serverTime.minute.toString().padStart(2, '0')} ST`;
+            } else {
+                preview.textContent = '--:--';
+            }
+        }
+
+        function isAdminMode() {
+            return localStorage.getItem('adminKey') === ADMIN_KEY;
+        }
+
+        async function loadPlayers() {
+            try {
+                const response = await fetch(`${API_URL}/api/players`);
+                if (!response.ok) throw new Error('Failed to load players');
+                playersCache = await response.json();
+            } catch (error) {
+                console.error('Error loading players:', error);
+                alert('Could not load player data. Please refresh the page.');
+            }
+        }
+
+        async function loadRaids() {
+            try {
+                const response = await fetch(`${API_URL}/api/raids`);
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        raidsCache = [];
+                        renderRaids();
+                        return;
+                    }
+                    throw new Error('Failed to load raids');
+                }
+                raidsCache = await response.json();
+                renderRaids();
+            } catch (error) {
+                console.error('Error loading raids:', error);
+                raidsCache = [];
+                renderRaids();
+            }
+        }
+
+        async function saveRaids() {
+            try {
+                const response = await fetch(`${API_URL}/api/raids`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(raidsCache)
+                });
+                if (!response.ok) throw new Error('Failed to save raids');
+            } catch (error) {
+                console.error('Error saving raids:', error);
+                alert('Failed to save raid data. Please try again.');
+            }
+        }
+
+        function renderRaids() {
+            const container = document.getElementById('raidsContainer');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (raidsCache.length === 0) {
+                container.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            
+            // Sort raids by date/time
+            raidsCache.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+            
+            container.innerHTML = raidsCache.map(raid => {
+                const signupCount = raid.signups.length;
+                const status = signupCount >= 20 ? 'full' : 'open';
+                const statusText = signupCount >= 20 ? 'Full' : `${signupCount}/20`;
+                
+                // Parse the stored server time and convert to user's timezone
+                const date = new Date(raid.dateTime);
+                
+                // Display in user's selected timezone
+                const userTimezone = selectedTimezone === 'auto' ? Intl.DateTimeFormat().resolvedOptions().timeZone : selectedTimezone;
+                const dateStr = date.toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    month: 'short', 
+                    day: 'numeric',
+                    timeZone: userTimezone
+                });
+                const timeStr = date.toLocaleTimeString('en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false,
+                    timeZone: userTimezone
+                });
+
+                return `
+                    <div class="raid-card scheduled">
+                        <div class="raid-header">
+                            <div>
+                                <div class="raid-title">Rin·Izcorgiky</div>
+                                <div class="raid-time">${dateStr} at ${timeStr} (Your Time)</div>
+                                ${raid.description ? `<div class="raid-time" style="margin-top: 5px;">${raid.description}</div>` : ''}
+                            </div>
+                            <div class="raid-status ${status}">${statusText}</div>
+                        </div>
+                        
+                        <div class="signup-list">
+                            ${raid.signups.length === 0 ? 
+                                '<div style="text-align: center; color: var(--text-secondary); padding: 20px;">No signups yet. Be the first!</div>' :
+                                raid.signups.map((signup, index) => `
+                                    <div class="signup-item">
+                                        <div class="signup-info">
+                                            <span class="signup-number">#${index + 1}</span>
+                                            <div>
+                                                <div class="player-name">${signup.playerName}</div>
+                                                <div class="player-class">${signup.class} • ${signup.gearScore} GS</div>
+                                            </div>
+                                        </div>
+                                        ${isAdminMode() || canRemoveSignup(raid.id, signup.playerName) ? 
+                                            `<button class="remove-btn" data-raid-id="${raid.id}" data-player-name="${signup.playerName.replace(/"/g, '&quot;')}">Remove</button>` : 
+                                            ''}
+                                    </div>
+                                `).join('')
+                            }
+                        </div>
+                        
+                        <div class="signup-actions">
+                            <button class="btn-primary" data-raid-id="${raid.id}" class="signup-btn">Sign Up</button>
+                            ${isAdminMode() ? `<button class="btn-secondary delete-raid-btn" data-raid-id="${raid.id}">Delete Raid</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Add event listeners for dynamically created buttons
+            document.querySelectorAll('.remove-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const raidId = this.dataset.raidId;
+                    const playerName = this.dataset.playerName;
+                    removeSignup(raidId, playerName);
+                });
+            });
+            
+            document.querySelectorAll('.signup-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    openSignupModal(this.dataset.raidId);
+                });
+            });
+            
+            document.querySelectorAll('.delete-raid-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    deleteRaid(this.dataset.raidId);
+                });
+            });
+        }
+
+        function canRemoveSignup(raidId, playerName) {
+            // Users can remove their own signups
+            return Object.keys(playersCache).includes(playerName);
+        }
+
+        function openSignupModal(raidId) {
+            selectedRaidId = raidId;
+            selectedPlayerName = null;
+            
+            const playersList = document.getElementById('playerSelectList');
+            const quickSelect = document.getElementById('quickPlayerSelect');
+            const searchInput = document.getElementById('playerSearch');
+            const playerNames = Object.keys(playersCache);
+            
+            // Reset search
+            searchInput.value = '';
+            
+            if (playerNames.length === 0) {
+                playersList.innerHTML = '<div class="empty-state"><p>No players registered. Please add a player in the main planner first!</p></div>';
+                quickSelect.innerHTML = '<option value="">No players available</option>';
+                document.getElementById('confirmSignup').disabled = true;
+            } else {
+                // Populate quick select dropdown
+                quickSelect.innerHTML = '<option value="">-- Choose a player --</option>' + 
+                    playerNames.map(name => {
+                        const player = playersCache[name];
+                        return `<option value="${name}">${player.name} (${player.class})</option>`;
+                    }).join('');
+                
+                // Populate player list
+                playersList.innerHTML = playerNames.map(name => {
+                    const player = playersCache[name];
+                    return `
+                        <div class="player-select-item" data-player-name="${name}" data-player-class="${player.class}" onclick="selectPlayer('${name}')">
+                            <div class="player-name">${player.name}</div>
+                            <div class="player-class">${player.class} • ${player.gearScore} GS</div>
+                        </div>
+                    `;
+                }).join('');
+                document.getElementById('confirmSignup').disabled = false;
+            }
+            
+            document.getElementById('signupModal').style.display = 'flex';
+        }
+
+        function selectPlayer(playerName) {
+            selectedPlayerName = playerName;
+            
+            // Update visual selection
+            document.querySelectorAll('.player-select-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            const selectedItem = document.querySelector(`[data-player-name="${playerName}"]`);
+            if (selectedItem) {
+                selectedItem.classList.add('selected');
+            }
+            
+            // Update quick select dropdown
+            document.getElementById('quickPlayerSelect').value = playerName;
+        }
+
+        function filterPlayers() {
+            const searchTerm = document.getElementById('playerSearch').value.toLowerCase();
+            const items = document.querySelectorAll('.player-select-item');
+            
+            items.forEach(item => {
+                const playerName = item.dataset.playerName.toLowerCase();
+                const playerClass = item.dataset.playerClass.toLowerCase();
+                
+                if (playerName.includes(searchTerm) || playerClass.includes(searchTerm)) {
+                    item.classList.remove('hidden');
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+        }
+
+        async function confirmSignup() {
+            if (!selectedPlayerName) {
+                alert('Please select a player!');
+                return;
+            }
+
+            const raid = raidsCache.find(r => r.id === selectedRaidId);
+            if (!raid) return;
+
+            // Check if already signed up
+            if (raid.signups.some(s => s.playerName === selectedPlayerName)) {
+                alert('This player is already signed up for this raid!');
+                return;
+            }
+
+            const player = playersCache[selectedPlayerName];
+            raid.signups.push({
+                playerName: player.name,
+                class: player.class,
+                gearScore: player.gearScore,
+                signupTime: new Date().toISOString()
+            });
+
+            await saveRaids();
+            closeSignupModal();
+            renderRaids();
+        }
+
+        async function removeSignup(raidId, playerName) {
+            if (!isAdminMode() && !canRemoveSignup(raidId, playerName)) {
+                alert('You can only remove your own signups!');
+                return;
+            }
+
+            if (!confirm(`Remove ${playerName} from this raid?`)) return;
+
+            const raid = raidsCache.find(r => r.id === raidId);
+            if (!raid) return;
+
+            raid.signups = raid.signups.filter(s => s.playerName !== playerName);
+            await saveRaids();
+            renderRaids();
+        }
+
+        function closeSignupModal() {
+            document.getElementById('signupModal').style.display = 'none';
+            selectedRaidId = null;
+            selectedPlayerName = null;
+        }
+
+        async function createRaid(event) {
+            event.preventDefault();
+            
+            const dateInput = document.getElementById('raidDate').value;
+            const timeInput = document.getElementById('raidTime').value;
+            const description = document.getElementById('raidDescription').value;
+
+            // Parse the date and time in user's timezone
+            const [hour, minute] = timeInput.split(':').map(Number);
+            const [year, month, day] = dateInput.split('-').map(Number);
+            
+            // Convert to server time
+            const serverTime = getServerHourFromLocalHour(hour, minute, dateInput);
+            
+            // Create a UTC date for server time (server time 00:00 = 07:00 UTC)
+            const serverUtcHour = (serverTime.hour + 7) % 24;
+            const dateTime = new Date(Date.UTC(
+                year,
+                month - 1,
+                day,
+                serverUtcHour,
+                serverTime.minute,
+                0
+            ));
+            
+            const newRaid = {
+                id: Date.now().toString(),
+                dateTime: dateTime.toISOString(),
+                description: description,
+                signups: []
+            };
+
+            raidsCache.push(newRaid);
+            await saveRaids();
+            renderRaids();
+            
+            event.target.reset();
+            updateServerTimePreview();
+            alert('Raid created successfully!');
+        }
+
+        async function deleteRaid(raidId) {
+            if (!confirm('Are you sure you want to delete this raid?')) return;
+
+            raidsCache = raidsCache.filter(r => r.id !== raidId);
+            await saveRaids();
+            renderRaids();
+        }
+
+        // Dark mode
+        function toggleDarkMode() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            localStorage.setItem('lightMode', isLight);
+            const toggle = document.querySelector('.dark-mode-toggle');
+            if (toggle) {
+                toggle.textContent = isLight ? '◑' : '◐';
+                toggle.title = isLight ? 'Toggle Dark Mode' : 'Toggle Light Mode';
+            }
+        }
+
+        if (localStorage.getItem('lightMode') === 'true') {
+            document.body.classList.add('light-mode');
+            const toggle = document.querySelector('.dark-mode-toggle');
+            if (toggle) {
+                toggle.textContent = '◑';
+                toggle.title = 'Toggle Dark Mode';
+            }
+        }
+
+        // Admin key listener
+        let keyBuffer = '';
+        document.addEventListener('keypress', (e) => {
+            keyBuffer += e.key.toLowerCase();
+            if (keyBuffer.length > ADMIN_KEY.length) {
+                keyBuffer = keyBuffer.slice(-ADMIN_KEY.length);
+            }
+            if (keyBuffer === ADMIN_KEY) {
+                if (!isAdminMode()) {
+                    localStorage.setItem('adminKey', ADMIN_KEY);
+                    alert('Admin mode activated!');
+                    document.getElementById('createRaidSection').style.display = 'block';
+                    renderRaids();
+                }
+                keyBuffer = '';
+            }
+        });
+
+        // Event listeners
+        document.getElementById('createRaidForm').addEventListener('submit', createRaid);
+        document.getElementById('confirmSignup').addEventListener('click', confirmSignup);
+        document.getElementById('cancelSignup').addEventListener('click', closeSignupModal);
+        
+        // Player search
+        document.getElementById('playerSearch').addEventListener('input', filterPlayers);
+        
+        // Quick select dropdown
+        document.getElementById('quickPlayerSelect').addEventListener('change', (e) => {
+            if (e.target.value) {
+                selectPlayer(e.target.value);
+            }
+        });
+        
+        // Close modal when clicking outside
+        document.getElementById('signupModal').addEventListener('click', (e) => {
+            if (e.target.id === 'signupModal') {
+                closeSignupModal();
+            }
+        });
+        
+        // Timezone selector
+        document.getElementById('timezoneSelect').addEventListener('change', (e) => {
+            selectedTimezone = e.target.value;
+            localStorage.setItem('selectedTimezone', selectedTimezone);
+            renderRaids(); // Re-render to show times in new timezone
+            updateServerTimePreview();
+        });
+        
+        // Time/date inputs for server time preview
+        document.getElementById('raidTime').addEventListener('input', updateServerTimePreview);
+        document.getElementById('raidDate').addEventListener('change', updateServerTimePreview);
+
+        // Initialize
+        async function init() {
+            // Load saved timezone preference
+            const savedTimezone = localStorage.getItem('selectedTimezone');
+            if (savedTimezone) {
+                selectedTimezone = savedTimezone;
+                document.getElementById('timezoneSelect').value = savedTimezone;
+            }
+            
+            await loadPlayers();
+            await loadRaids();
+            
+            if (isAdminMode()) {
+                document.getElementById('createRaidSection').style.display = 'block';
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

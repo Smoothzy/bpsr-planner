@@ -409,7 +409,9 @@
     <script>
         const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         const STORAGE_KEY = 'bpsr_players';
-        const API_URL = 'https://web-production-af38.up.railway.app'; // Railway backend server
+        // Auto-detect API URL based on environment
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const API_URL = isLocalhost ? 'http://localhost:3000' : 'https://web-production-af38.up.railway.app';
         let selectedTimezone = 'auto';
         let currentView = 'list';
         let playersCache = {}; // In-memory cache

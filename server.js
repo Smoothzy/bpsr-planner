@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 3000;
 // Use Railway's persistent volume if available, otherwise use local directory
 const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || __dirname;
 const DATA_FILE = path.join(DATA_DIR, 'players.json');
+const RAIDS_FILE = path.join(DATA_DIR, 'raids.json');
 
 // Sanitize function to prevent XSS
 function sanitizeName(name) {
@@ -29,6 +30,16 @@ async function ensureDataFile() {
     } catch {
         await fs.writeFile(DATA_FILE, '{}', 'utf8');
         console.log('Created players.json');
+    }
+}
+
+// Ensure raids.json exists
+async function ensureRaidsFile() {
+    try {
+        await fs.access(RAIDS_FILE);
+    } catch {
+        await fs.writeFile(RAIDS_FILE, '[]', 'utf8');
+        console.log('Created raids.json');
     }
 }
 
@@ -121,16 +132,55 @@ app.delete('/api/players/:name', async (req, res) => {
     }
 });
 
+// GET endpoint - Read raids data
+app.get('/api/raids', async (req, res) => {
+    try {
+        const data = await fs.readFile(RAIDS_FILE, 'utf8');
+        res.json(JSON.parse(data));
+    } catch (error) {
+        console.error('Error reading raids:', error);
+        res.status(500).json({ error: 'Failed to read raids data' });
+    }
+});
+
+// POST endpoint - Save raids data
+app.post('/api/raids', async (req, res) => {
+    try {
+        const raids = req.body;
+        
+        // Validate data
+        if (!Array.isArray(raids)) {
+            return res.status(400).json({ error: 'Invalid data format - expected array' });
+        }
+
+        // Write to file
+        await fs.writeFile(RAIDS_FILE, JSON.stringify(raids, null, 2), 'utf8');
+        
+        res.json({ 
+            success: true, 
+            message: 'Raids data saved successfully',
+            raidCount: raids.length
+        });
+    } catch (error) {
+        console.error('Error saving raids:', error);
+        res.status(500).json({ error: 'Failed to save raids data' });
+    }
+});
+
 // Start server
 async function startServer() {
     await ensureDataFile();
+    await ensureRaidsFile();
     app.listen(PORT, () => {
         console.log(`🚀 BPSR Planner Server running on http://localhost:${PORT}`);
         console.log(`📁 Data file: ${DATA_FILE}`);
+        console.log(`📁 Raids file: ${RAIDS_FILE}`);
         console.log(`\n📡 API Endpoints:`);
         console.log(`   GET    /api/players        - Get all players`);
         console.log(`   POST   /api/players        - Save/update players`);
         console.log(`   DELETE /api/players/:name  - Delete a player`);
+        console.log(`   GET    /api/raids          - Get all raids`);
+        console.log(`   POST   /api/raids          - Save raids`);
     });
 }
 

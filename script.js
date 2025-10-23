@@ -6,7 +6,9 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0-23 hours
 const STORAGE_KEY = 'bpsr_players';
 const ADMIN_KEY = 'bond'; // Secret admin key
-const API_URL = 'https://web-production-af38.up.railway.app'; // Railway backend server
+// Auto-detect API URL based on environment
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_URL = isLocalhost ? 'http://localhost:3000' : 'https://web-production-af38.up.railway.app';
 
 // Server time reference: 9:00 AM CEST (UTC+2 in summer, UTC+1 in winter)
 // For simplicity, we'll use UTC+2 as the base (CEST summer time)
