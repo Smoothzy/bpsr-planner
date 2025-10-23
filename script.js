@@ -6,7 +6,7 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0-23 hours
 const STORAGE_KEY = 'bpsr_players';
 const ADMIN_KEY = 'bond'; // Secret admin key
-const API_URL = 'https://web-production-af38.up.railway.app'; // Railway backend server
+const API_URL = 'web-production-af38.up.railway.app'; // Use current origin (works locally and deployed)
 
 // Server time reference: 9:00 AM CEST (UTC+2 in summer, UTC+1 in winter)
 // For simplicity, we'll use UTC+2 as the base (CEST summer time)
@@ -795,12 +795,12 @@ async function loadFromServer() {
         
         const count = Object.keys(players).length;
         if (count > 0) {
-            showSyncStatus(`✅ Loaded ${count} player${count !== 1 ? 's' : ''} from server`, 'success');
+            showSyncStatus(`Loaded ${count} player${count !== 1 ? 's' : ''} from server`, 'success');
         } else {
-            showSyncStatus('📝 No players saved yet. Add some players to get started!', 'info');
+            showSyncStatus('No players saved yet. Add some players to get started!', 'info');
         }
     } catch (error) {
-        showSyncStatus(`⚠️ Server unavailable. Using local data only.`, 'error');
+        showSyncStatus(`Server unavailable. Using local data only.`, 'error');
         console.error('Load error:', error);
     }
 }
@@ -825,12 +825,12 @@ async function saveToServer() {
         
         const result = await response.json();
         
-        showSyncStatus(`✅ Saved ${result.playerCount} player${result.playerCount !== 1 ? 's' : ''} to server!`, 'success');
+        showSyncStatus(`Saved ${result.playerCount} player${result.playerCount !== 1 ? 's' : ''} to server!`, 'success');
         
         // Reload to get any merged data from server
         await loadFromServer();
     } catch (error) {
-        showSyncStatus(`❌ Error saving to server: ${error.message}`, 'error');
+        showSyncStatus(`Error saving to server: ${error.message}`, 'error');
         console.error('Save error:', error);
     }
 }
@@ -841,10 +841,10 @@ function showSyncStatus(message, type = 'info') {
     const text = document.getElementById('syncStatusText');
     
     const icons = {
-        success: '✅',
-        error: '❌',
-        info: 'ℹ️',
-        loading: '⏳'
+        success: '●',
+        error: '✕',
+        info: '◆',
+        loading: '◐'
     };
     
     const colors = {
@@ -1001,7 +1001,7 @@ function toggleDarkMode() {
     localStorage.setItem('lightMode', isLight);
     const toggle = document.querySelector('.dark-mode-toggle');
     if (toggle) {
-        toggle.textContent = isLight ? '🌙' : '☀️';
+        toggle.textContent = isLight ? '◑' : '◐';
         toggle.title = isLight ? 'Toggle Dark Mode' : 'Toggle Light Mode';
     }
 }
@@ -1011,7 +1011,7 @@ if (localStorage.getItem('lightMode') === 'true') {
     document.body.classList.add('light-mode');
     const toggle = document.querySelector('.dark-mode-toggle');
     if (toggle) {
-        toggle.textContent = '🌙';
+        toggle.textContent = '◑';
         toggle.title = 'Toggle Dark Mode';
     }
 }
