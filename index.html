@@ -167,34 +167,31 @@
         </div>
 
         <div class="sync-section" style="background: var(--card-bg); padding: 20px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px var(--shadow);">
-            <h2>🔄 Multi-User Sync <span style="font-size: 0.6em; color: var(--text-secondary);">(No Tokens Required!)</span></h2>
-            <p class="instruction">Share player data with your raid group - everyone can add and update their availability!</p>
+            <h2>� Import / Export Data</h2>
+            <p class="instruction">Save your raid planner data to a file or load data from a file to share with your group!</p>
             
             <div class="sync-status" id="syncStatus" style="padding: 10px; margin: 10px 0; border-radius: 5px; display: none;">
                 <span id="syncStatusIcon"></span>
                 <span id="syncStatusText"></span>
             </div>
 
-            <div class="sync-controls" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
-                <div class="form-group" style="flex: 1; min-width: 300px;">
-                    <label for="binId">Shared Storage ID:</label>
-                    <input type="text" id="binId" placeholder="Enter shared ID or leave empty to create new" style="width: 100%;">
-                    <small style="color: var(--text-secondary); display: block; margin-top: 5px;">Get this from your raid leader or create a new one. Everyone can save!</small>
-                </div>
-            </div>
-
             <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
-                <button id="syncLoad" class="btn-secondary">📥 Load from Cloud</button>
-                <button id="syncSave" class="btn-secondary">📤 Save to Cloud</button>
-                <button id="syncAuto" class="btn-secondary">🔄 Auto-Sync: <span id="autoSyncStatus">OFF</span></button>
-                <button id="syncClear" class="btn-secondary" style="margin-left: auto;">❌ Disconnect</button>
+                <button id="syncLoad" class="btn-primary">� Reload from Git</button>
+                <button id="syncSave" class="btn-secondary">� Download for Commit</button>
             </div>
 
-            <div id="syncInfo" style="margin-top: 15px; padding: 10px; background: var(--bg-secondary); border-radius: 5px; display: none;">
-                <small style="color: var(--text-secondary);">
-                    <strong>Last Sync:</strong> <span id="lastSyncTime">Never</span><br>
-                    <strong>Storage URL:</strong> <a id="binUrl" href="#" target="_blank" style="color: var(--accent-primary);">View Online</a>
-                </small>
+            <div style="margin-top: 15px; padding: 15px; background: var(--bg-secondary); border-radius: 8px; border-left: 4px solid var(--accent-primary);">
+                <strong style="color: var(--text-primary);">� How to share with your raid group:</strong>
+                <ol style="margin: 10px 0 0 20px; color: var(--text-secondary); line-height: 1.8;">
+                    <li>Data automatically loads from <code>players.json</code> in the repository</li>
+                    <li>Make your changes (add/edit players)</li>
+                    <li>Click "Download for Commit" to get the updated <code>players.json</code></li>
+                    <li>Replace the old <code>players.json</code> in your repo and commit/push</li>
+                    <li>Everyone else automatically gets the updates when they refresh the page!</li>
+                </ol>
+                <div style="margin-top: 10px; padding: 10px; background: var(--bg-tertiary); border-radius: 5px; color: var(--text-secondary);">
+                    <strong>📁 Data file:</strong> <code>players.json</code> in repository root
+                </div>
             </div>
         </div>
 

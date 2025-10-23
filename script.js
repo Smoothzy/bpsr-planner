@@ -6,8 +6,9 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0-23 hours
 const STORAGE_KEY = 'bpsr_players';
 const ADMIN_KEY = 'bond'; // Secret admin key
-const SYNC_STORAGE_KEY = 'sync_config';
-const DPASTE_API = 'https://dpaste.com/api/v2';
+const GITHUB_REPO = 'Smoothzy/bpsr-planner'; // Your repository
+const DATA_FILE = 'players.json'; // File to store data
+const GITHUB_API = 'https://api.github.com';
 
 // Server time reference: 9:00 AM CEST (UTC+2 in summer, UTC+1 in winter)
 // For simplicity, we'll use UTC+2 as the base (CEST summer time)
@@ -17,11 +18,6 @@ const SERVER_TIME_OFFSET = -7; // 9:00 CEST = 7:00 UTC, server time 0:00 = -7 ho
 let currentPlayer = null;
 let selectedTimezone = 'auto';
 let availabilityGrid = {};
-let autoSyncInterval = null;
-let syncConfig = {
-    pasteId: '',
-    autoSync: false
-};
 
 // Drag selection state
 let isDragging = false;
@@ -761,27 +757,79 @@ function calculateBestTimes() {
 }
 
 // ============================================
-// dpaste.com Sync Functions (No Token Required!)
+// GitHub File Storage Functions
 // ============================================
 
-function loadSyncConfig() {
-    const saved = localStorage.getItem(SYNC_STORAGE_KEY);
-    if (saved) {
-        syncConfig = JSON.parse(saved);
-        document.getElementById('binId').value = syncConfig.pasteId || '';
-        if (syncConfig.pasteId) {
-            document.getElementById('syncInfo').style.display = 'block';
-            document.getElementById('binUrl').href = `https://dpaste.com/${syncConfig.pasteId}`;
+async function loadFromGitHub() {
+    showSyncStatus('Loading from repository...', 'loading');
+    
+    try {
+        // Try to fetch the players.json file from the repository
+        const response = await fetch(`https://raw.githubusercontent.com/${GITHUB_REPO}/main/${DATA_FILE}`);
+        
+        if (!response.ok) {
+            // File doesn't exist yet, use empty data
+            if (response.status === 404) {
+                showSyncStatus('No saved data found in repository yet.', 'info');
+                return;
+            }
+            throw new Error(`Failed to load: ${response.status}`);
         }
-        if (syncConfig.autoSync) {
-            startAutoSync();
-        }
+        
+        const players = await response.json();
+        
+        // Merge with local data (keep newer entries)
+        const localPlayers = loadPlayers();
+        const merged = { ...players };
+        
+        Object.keys(localPlayers).forEach(name => {
+            const localTime = new Date(localPlayers[name].lastUpdated || 0).getTime();
+            const remoteTime = merged[name] ? new Date(merged[name].lastUpdated || 0).getTime() : 0;
+            
+            if (localTime > remoteTime) {
+                merged[name] = localPlayers[name];
+            }
+        });
+        
+        savePlayers(merged);
+        renderPlayersList();
+        calculateBestTimes();
+        
+        showSyncStatus(`✅ Successfully loaded ${Object.keys(players).length} players from repository!`, 'success');
+    } catch (error) {
+        showSyncStatus(`Error loading: ${error.message}`, 'error');
+        console.error('Load error:', error);
     }
 }
 
-function saveSyncConfig() {
-    syncConfig.pasteId = document.getElementById('binId').value.trim();
-    localStorage.setItem(SYNC_STORAGE_KEY, JSON.stringify(syncConfig));
+async function saveToGitHub() {
+    showSyncStatus('⚠️ Manual save required', 'info');
+    
+    const players = loadPlayers();
+    const dataStr = JSON.stringify(players, null, 2);
+    
+    // Create a downloadable file
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'players.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    // Show instructions
+    alert(
+        '📥 File downloaded as "players.json"\n\n' +
+        'To save to Git:\n' +
+        '1. The file has been downloaded\n' +
+        '2. Replace the existing players.json in your repository\n' +
+        '3. Commit and push to GitHub\n' +
+        '4. Everyone will get the updates automatically!'
+    );
+    
+    showSyncStatus('✅ File downloaded! Follow the instructions to commit to Git.', 'success');
 }
 
 function showSyncStatus(message, type = 'info') {
@@ -812,159 +860,6 @@ function showSyncStatus(message, type = 'info') {
         setTimeout(() => {
             status.style.display = 'none';
         }, 5000);
-    }
-}
-
-async function loadFromBin() {
-    const pasteId = document.getElementById('binId').value.trim();
-    
-    if (!pasteId) {
-        showSyncStatus('Please enter a Paste ID', 'error');
-        return;
-    }
-    
-    showSyncStatus('Loading from cloud...', 'loading');
-    
-    try {
-        const response = await fetch(`https://dpaste.com/${pasteId}.txt`);
-        
-        if (!response.ok) {
-            throw new Error(`Failed to load: ${response.status}`);
-        }
-        
-        const content = await response.text();
-        const players = JSON.parse(content);
-        
-        // Merge with local data (keep newer entries)
-        const localPlayers = loadPlayers();
-        const merged = { ...players };
-        
-        Object.keys(localPlayers).forEach(name => {
-            const localTime = new Date(localPlayers[name].lastUpdated).getTime();
-            const remoteTime = merged[name] ? new Date(merged[name].lastUpdated).getTime() : 0;
-            
-            if (localTime > remoteTime) {
-                merged[name] = localPlayers[name];
-            }
-        });
-        
-        savePlayers(merged);
-        saveSyncConfig();
-        renderPlayersList();
-        calculateBestTimes();
-        
-        document.getElementById('syncInfo').style.display = 'block';
-        document.getElementById('binUrl').href = `https://dpaste.com/${pasteId}`;
-        document.getElementById('lastSyncTime').textContent = new Date().toLocaleString();
-        
-        showSyncStatus(`Successfully loaded ${Object.keys(players).length} players from cloud`, 'success');
-    } catch (error) {
-        showSyncStatus(`Error: ${error.message}`, 'error');
-        console.error('Load error:', error);
-    }
-}
-
-async function saveToBin() {
-    showSyncStatus('Saving to cloud...', 'loading');
-    
-    try {
-        const players = loadPlayers();
-        const content = JSON.stringify(players, null, 2);
-        
-        // Create form data for dpaste
-        const formData = new FormData();
-        formData.append('content', content);
-        formData.append('syntax', 'json');
-        formData.append('expiry_days', '365');
-        
-        const response = await fetch(`${DPASTE_API}/`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Failed to save: ${response.status}`);
-        }
-        
-        // dpaste returns the URL in the response text
-        const pasteUrl = await response.text();
-        // Extract ID from URL (e.g., https://dpaste.com/ABC123 -> ABC123)
-        const pasteId = pasteUrl.trim().split('/').pop();
-        
-        // Update the ID field
-        document.getElementById('binId').value = pasteId;
-        syncConfig.pasteId = pasteId;
-        saveSyncConfig();
-        
-        document.getElementById('syncInfo').style.display = 'block';
-        document.getElementById('binUrl').href = `https://dpaste.com/${pasteId}`;
-        document.getElementById('lastSyncTime').textContent = new Date().toLocaleString();
-        
-        showSyncStatus(`Successfully saved ${Object.keys(players).length} players to cloud`, 'success');
-        showSyncStatus(`✅ Share this ID with your raid group: ${pasteId}`, 'success');
-    } catch (error) {
-        showSyncStatus(`Error: ${error.message}`, 'error');
-        console.error('Save error:', error);
-    }
-}
-
-function toggleAutoSync() {
-    syncConfig.autoSync = !syncConfig.autoSync;
-    saveSyncConfig();
-    
-    const statusSpan = document.getElementById('autoSyncStatus');
-    
-    if (syncConfig.autoSync) {
-        startAutoSync();
-        statusSpan.textContent = 'ON';
-        showSyncStatus('Auto-sync enabled. Will check for updates every 30 seconds.', 'success');
-    } else {
-        stopAutoSync();
-        statusSpan.textContent = 'OFF';
-        showSyncStatus('Auto-sync disabled.', 'info');
-    }
-}
-
-function startAutoSync() {
-    if (autoSyncInterval) return;
-    
-    document.getElementById('autoSyncStatus').textContent = 'ON';
-    document.getElementById('syncAuto').style.background = 'linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%)';
-    document.getElementById('syncAuto').style.color = 'white';
-    
-    // Load immediately
-    if (syncConfig.pasteId) {
-        loadFromBin();
-    }
-    
-    // Then every 30 seconds
-    autoSyncInterval = setInterval(() => {
-        if (syncConfig.pasteId) {
-            loadFromBin();
-        }
-    }, 30000);
-}
-
-function stopAutoSync() {
-    if (autoSyncInterval) {
-        clearInterval(autoSyncInterval);
-        autoSyncInterval = null;
-    }
-    
-    document.getElementById('autoSyncStatus').textContent = 'OFF';
-    document.getElementById('syncAuto').style.background = '';
-    document.getElementById('syncAuto').style.color = '';
-}
-
-function disconnectSync() {
-    if (confirm('This will disconnect from cloud sync. Your local data will be preserved. Continue?')) {
-        stopAutoSync();
-        syncConfig = { pasteId: '', autoSync: false };
-        localStorage.removeItem(SYNC_STORAGE_KEY);
-        document.getElementById('binId').value = '';
-        document.getElementById('syncInfo').style.display = 'none';
-        document.getElementById('autoSyncStatus').textContent = 'OFF';
-        showSyncStatus('Disconnected from cloud sync. Local data preserved.', 'info');
     }
 }
 
@@ -1001,11 +896,9 @@ document.getElementById('timezoneSelect').addEventListener('change', (e) => {
     calculateBestTimes(); // Re-calculate best times in new timezone
 });
 
-// Sync button event listeners
-document.getElementById('syncLoad').addEventListener('click', loadFromBin);
-document.getElementById('syncSave').addEventListener('click', saveToBin);
-document.getElementById('syncAuto').addEventListener('click', toggleAutoSync);
-document.getElementById('syncClear').addEventListener('click', disconnectSync);
+// GitHub storage button event listeners
+document.getElementById('syncLoad').addEventListener('click', loadFromGitHub);
+document.getElementById('syncSave').addEventListener('click', saveToGitHub);
 
 // Initialize
 function init() {
@@ -1015,7 +908,9 @@ function init() {
     renderPlayersList();
     calculateBestTimes();
     updateTimeDisplays();
-    loadSyncConfig(); // Load saved sync configuration
+    
+    // Auto-load from GitHub on page load
+    loadFromGitHub();
     
     // Update time displays every second
     setInterval(updateTimeDisplays, 1000);
