@@ -314,15 +314,65 @@
         const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         const STORAGE_KEY = 'bpsr_players';
         const ADMIN_KEY = 'bond'; // Secret admin key
+        const SESSION_KEY = 'bpsr_session_token'; // Discord session token
         // Auto-detect API URL based on environment
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         const API_URL = isLocalhost ? 'http://localhost:3000' : 'https://web-production-af38.up.railway.app';
         
         let playersCache = {}; // In-memory cache
+        let currentUser = null; // Discord user info
         
         // Check if admin mode is enabled
         function isAdminMode() {
             return localStorage.getItem('adminKey') === ADMIN_KEY;
+        }
+        
+        // Discord Authentication
+        async function checkAuth() {
+            const token = localStorage.getItem(SESSION_KEY);
+            if (!token) {
+                currentUser = null;
+                return false;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/api/auth/user`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    currentUser = await response.json();
+                    return true;
+                } else {
+                    localStorage.removeItem(SESSION_KEY);
+                    currentUser = null;
+                    return false;
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                return false;
+            }
+        }
+        
+        // Check if user can edit this player
+        function canEditPlayer(playerName) {
+            // Admin can edit anyone
+            if (isAdminMode()) return true;
+            
+            // Not logged in - can't edit
+            if (!currentUser) return false;
+            
+            // Check if player has ownerId and if it matches current user
+            const player = playersCache[playerName];
+            if (!player) return false;
+            
+            // If player has no owner, anyone logged in can claim it
+            if (!player.ownerId) return true;
+            
+            // Check if this user owns the player
+            return player.ownerId === currentUser.id;
         }
 
         function loadPlayers() {
@@ -477,8 +527,8 @@
                     <td>${lastUpdated}</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="btn-sm btn-edit" data-player-name="${player.name.replace(/"/g, '&quot;')}">✏️ Edit</button>
-                            ${isAdminMode() ? `<button class="btn-sm btn-delete" data-player-name="${player.name.replace(/"/g, '&quot;')}">🗑️</button>` : ''}
+                            ${canEditPlayer(player.name) ? `<button class="btn-sm btn-edit" data-player-name="${player.name.replace(/"/g, '&quot;')}">✏️ Edit</button>` : ''}
+                            ${(canEditPlayer(player.name) || isAdminMode()) ? `<button class="btn-sm btn-delete" data-player-name="${player.name.replace(/"/g, '&quot;')}">🗑️</button>` : ''}
                         </div>
                     </td>
                 `;
@@ -929,8 +979,13 @@
             }
         });
 
-        // Initialize - load from server
-        loadFromServer();
+        // Initialize - check auth and load from server
+        async function init() {
+            await checkAuth();
+            await loadFromServer();
+        }
+        
+        init();
     </script>
 </body>
 </html>
