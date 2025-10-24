@@ -301,7 +301,6 @@
                         <th>Weekly Availability</th>
                         <th>Most Active Day</th>
                         <th>Last Updated</th>
-                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="playersTableBody">
@@ -525,27 +524,8 @@
                     <td>${heatmapHTML}</td>
                     <td>${mostActiveDay} (${dayHours[mostActiveDay]}h)</td>
                     <td>${lastUpdated}</td>
-                    <td>
-                        <div class="action-buttons">
-                            ${canEditPlayer(player.name) ? `<button class="btn-sm btn-edit" data-player-name="${player.name.replace(/"/g, '&quot;')}">✏️ Edit</button>` : ''}
-                            ${(canEditPlayer(player.name) || isAdminMode()) ? `<button class="btn-sm btn-delete" data-player-name="${player.name.replace(/"/g, '&quot;')}">🗑️</button>` : ''}
-                        </div>
-                    </td>
                 `;
                 tbody.appendChild(row);
-            });
-            
-            // Add event listeners for dynamically created buttons
-            document.querySelectorAll('.btn-edit').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    editPlayer(this.dataset.playerName);
-                });
-            });
-            
-            document.querySelectorAll('.btn-delete').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    deletePlayer(this.dataset.playerName);
-                });
             });
         }
 
