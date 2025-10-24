@@ -530,13 +530,32 @@ function renderPlayersList() {
                 ${generateDetailedAvailability(player.availability)}
             </div>
             <div class="player-card-actions">
-                <button class="btn-edit" onclick="loadPlayerData('${player.name}')">✏️ Edit</button>
-                ${isAdminMode() ? `<button class="btn-delete" onclick="deletePlayer('${player.name}')">🗑️ Delete</button>` : ''}
-                <button class="btn-view" onclick="togglePlayerDetails('${player.name}')">👁️ Details</button>
+                <button class="btn-edit" data-player-name="${player.name.replace(/"/g, '&quot;')}">✏️ Edit</button>
+                ${isAdminMode() ? `<button class="btn-delete" data-player-name="${player.name.replace(/"/g, '&quot;')}">🗑️ Delete</button>` : ''}
+                <button class="btn-view" data-player-name="${player.name.replace(/"/g, '&quot;')}">👁️ Details</button>
             </div>
         `;
         
         container.appendChild(card);
+    });
+    
+    // Add event listeners for dynamically created buttons
+    document.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', function() {
+            loadPlayerData(this.dataset.playerName);
+        });
+    });
+    
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', function() {
+            deletePlayer(this.dataset.playerName);
+        });
+    });
+    
+    document.querySelectorAll('.btn-view').forEach(btn => {
+        btn.addEventListener('click', function() {
+            togglePlayerDetails(this.dataset.playerName);
+        });
     });
 }
 
