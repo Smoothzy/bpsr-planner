@@ -306,6 +306,23 @@ app.delete('/api/players/:name', async (req, res) => {
     }
 });
 
+// Admin endpoint - Clear all players (temporary, use with caution!)
+app.post('/api/admin/clear-players', async (req, res) => {
+    try {
+        const adminKey = req.headers['x-admin-key'];
+        if (adminKey !== 'bond') {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+        
+        await fs.writeFile(DATA_FILE, '{}', 'utf8');
+        console.log('⚠️  All players cleared by admin');
+        res.json({ success: true, message: 'All players cleared' });
+    } catch (error) {
+        console.error('Error clearing players:', error);
+        res.status(500).json({ error: 'Failed to clear players' });
+    }
+});
+
 // GET endpoint - Read raids data
 app.get('/api/raids', async (req, res) => {
     try {
