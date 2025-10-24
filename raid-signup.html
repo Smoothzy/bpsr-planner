@@ -708,13 +708,18 @@
             const playersList = document.getElementById('playerSelectList');
             const quickSelect = document.getElementById('quickPlayerSelect');
             const searchInput = document.getElementById('playerSearch');
-            const playerNames = Object.keys(playersCache);
+            
+            // Filter to only show players owned by current user
+            const playerNames = Object.keys(playersCache).filter(name => canEditPlayer(name));
             
             // Reset search
             searchInput.value = '';
             
             if (playerNames.length === 0) {
-                playersList.innerHTML = '<div class="empty-state"><p>No players registered. Please add a player in the main planner first!</p></div>';
+                const message = currentUser 
+                    ? 'You have no players registered. Please create a player in the main planner first!'
+                    : 'Please login with Discord and create a player to sign up for raids!';
+                playersList.innerHTML = `<div class="empty-state"><p>${message}</p></div>`;
                 quickSelect.innerHTML = '<option value="">No players available</option>';
                 document.getElementById('confirmSignup').disabled = true;
             } else {

@@ -130,6 +130,72 @@ function canEditPlayer(playerName) {
     return player.ownerId === currentUser.id;
 }
 
+// Update player selector dropdown for logged-in users
+function updatePlayerSelector() {
+    const nameInput = document.getElementById('playerName');
+    const loadButton = document.getElementById('loadPlayer');
+    
+    if (!currentUser) {
+        // Not logged in - show normal input
+        nameInput.style.display = 'inline-block';
+        loadButton.style.display = 'inline-block';
+        return;
+    }
+    
+    const ownedPlayers = Object.keys(playersCache).filter(name => canEditPlayer(name));
+    
+    if (ownedPlayers.length === 0) {
+        // No owned players - show input for creating new player
+        nameInput.style.display = 'inline-block';
+        loadButton.style.display = 'none';
+        nameInput.value = '';
+        nameInput.placeholder = 'Enter your character name';
+        return;
+    }
+    
+    // Has owned players - replace input with dropdown
+    const select = document.createElement('select');
+    select.id = 'playerNameSelect';
+    select.style.cssText = nameInput.style.cssText;
+    
+    ownedPlayers.forEach(playerName => {
+        const option = document.createElement('option');
+        option.value = playerName;
+        option.textContent = playerName;
+        if (currentPlayer && currentPlayer.name === playerName) {
+            option.selected = true;
+        }
+        select.appendChild(option);
+    });
+    
+    // Add option to create new player
+    const newOption = document.createElement('option');
+    newOption.value = '__new__';
+    newOption.textContent = '+ Create New Player';
+    select.appendChild(newOption);
+    
+    select.addEventListener('change', (e) => {
+        if (e.target.value === '__new__') {
+            // Clear form for new player
+            clearForm();
+            nameInput.value = '';
+            nameInput.style.display = 'inline-block';
+            select.style.display = 'none';
+            loadButton.style.display = 'none';
+        } else {
+            loadPlayerData(e.target.value);
+        }
+    });
+    
+    // Replace input with select if not already done
+    if (!document.getElementById('playerNameSelect')) {
+        nameInput.style.display = 'none';
+        nameInput.parentNode.insertBefore(select, nameInput);
+    }
+    
+    loadButton.style.display = 'none';
+}
+
 // Initialize availability grid
 function initializeAvailabilityGrid() {
     availabilityGrid = {};
@@ -719,6 +785,11 @@ function renderPlayersList() {
             togglePlayerDetails(this.dataset.playerName);
         });
     });
+    
+    // Update player selector for logged-in users
+    if (currentUser) {
+        updatePlayerSelector();
+    }
 }
 
 function generateDetailedAvailability(availability) {
@@ -1112,7 +1183,19 @@ async function init() {
     updateTimeDisplays();
     
     // Load once on page load (no auto-sync to reduce server load)
-    loadFromServer();
+    await loadFromServer();
+    
+    // Auto-load user's owned players if logged in
+    if (currentUser) {
+        const ownedPlayers = Object.keys(playersCache).filter(name => canEditPlayer(name));
+        if (ownedPlayers.length > 0) {
+            // Load the first owned player
+            loadPlayerData(ownedPlayers[0]);
+            
+            // Update player selector if it exists
+            updatePlayerSelector();
+        }
+    }
     
     // Update time displays every second
     setInterval(updateTimeDisplays, 1000);
