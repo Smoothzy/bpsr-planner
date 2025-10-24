@@ -544,19 +544,21 @@
             if (!confirm(`Are you sure you want to delete ${name}?`)) return;
             
             try {
-                const response = await fetch(`${API_URL}/api/players/${encodeURIComponent(name)}`, {
+                const adminParam = isAdminMode() ? '?admin=true' : '';
+                const response = await fetch(`${API_URL}/api/players/${encodeURIComponent(name)}${adminParam}`, {
                     method: 'DELETE'
                 });
                 
                 if (!response.ok) {
-                    throw new Error('Failed to delete player');
+                    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+                    throw new Error(error.error || 'Failed to delete player');
                 }
                 
                 // Reload data from server
                 await loadFromServer();
             } catch (error) {
                 console.error('Error deleting player:', error);
-                alert('Failed to delete player. Please try again.');
+                alert(`Failed to delete player: ${error.message}`);
             }
         }
 

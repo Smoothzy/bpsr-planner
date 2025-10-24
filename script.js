@@ -123,9 +123,10 @@ function canEditPlayer(playerName) {
     const player = playersCache[playerName];
     if (!player) return false;
     
-    // If player has no owner, anyone can claim it (migration from old system)
+    // If player has no owner, user can claim it (but we'll set ownership when saving)
     if (!player.ownerId) return true;
     
+    // Check if this user owns the player
     return player.ownerId === currentUser.id;
 }
 
@@ -398,13 +399,23 @@ function saveCurrentPlayer() {
         availabilityData[day] = Array.from(availabilityGrid[day]);
     });
     
+    // Determine ownerId: preserve existing owner, or set to current user if new/unclaimed
+    let ownerId;
+    if (players[name] && players[name].ownerId) {
+        // Keep existing owner
+        ownerId = players[name].ownerId;
+    } else if (currentUser) {
+        // Set current user as owner (new player or claiming unclaimed player)
+        ownerId = currentUser.id;
+    }
+    
     players[name] = {
         name,
         class: playerClass,
         gearScore: parseInt(gearScore),
         availability: availabilityData,
         lastUpdated: new Date().toISOString(),
-        ownerId: currentUser ? currentUser.id : undefined
+        ownerId: ownerId
     };
     
     savePlayers(players);
@@ -447,8 +458,9 @@ function loadPlayerData(name) {
 }
 
 async function deletePlayer(name) {
-    if (!isAdminMode()) {
-        alert('Admin access required to delete players.');
+    // Check if user can delete this player
+    if (!isAdminMode() && !canEditPlayer(name)) {
+        alert('You can only delete your own players. Admins can delete any player.');
         return;
     }
     
@@ -457,20 +469,29 @@ async function deletePlayer(name) {
     }
     
     try {
+        const token = localStorage.getItem(SESSION_KEY);
+        const headers = {};
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        // Add admin flag if in admin mode
+        const adminParam = isAdminMode() ? '?admin=true' : '';
+        
         // Delete from server using DELETE endpoint
-        const response = await fetch(`${API_URL}/api/players/${encodeURIComponent(name)}`, {
-            method: 'DELETE'
+        const response = await fetch(`${API_URL}/api/players/${encodeURIComponent(name)}${adminParam}`, {
+            method: 'DELETE',
+            headers: headers
         });
         
         if (!response.ok) {
-            throw new Error('Failed to delete player from server');
+            const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+            throw new Error(error.error || 'Failed to delete player from server');
         }
         
         // Delete from local cache
         delete playersCache[name];
-        
-        // Remove ownership tracking
-        removeMyPlayer(name);
         
         if (currentPlayer && currentPlayer.name === name) {
             clearForm();
@@ -480,7 +501,7 @@ async function deletePlayer(name) {
         calculateBestTimes();
     } catch (error) {
         console.error('Error deleting player:', error);
-        alert('Failed to delete player. Please try again.');
+        alert(`Failed to delete player: ${error.message}`);
     }
 }
 

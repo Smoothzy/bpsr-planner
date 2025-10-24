@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs').promises;
@@ -228,23 +229,24 @@ app.post('/api/players', async (req, res) => {
             // Update the name in the player object too
             newPlayer.name = sanitizedName;
             
-            // Add or update ownerId for new players
-            if (ownerId && !merged[sanitizedName]) {
-                newPlayer.ownerId = ownerId;
-            }
-            
             const existingPlayer = merged[sanitizedName];
             
             if (!existingPlayer) {
+                // New player - set owner if provided
+                if (ownerId && !newPlayer.ownerId) {
+                    newPlayer.ownerId = ownerId;
+                }
                 merged[sanitizedName] = newPlayer;
             } else {
                 const newTime = new Date(newPlayer.lastUpdated || 0).getTime();
                 const existingTime = new Date(existingPlayer.lastUpdated || 0).getTime();
                 
                 if (newTime > existingTime) {
-                    // Preserve ownerId if updating
+                    // Preserve existing ownerId, or claim if unclaimed
                     if (existingPlayer.ownerId) {
                         newPlayer.ownerId = existingPlayer.ownerId;
+                    } else if (ownerId && !newPlayer.ownerId) {
+                        newPlayer.ownerId = ownerId;
                     }
                     merged[sanitizedName] = newPlayer;
                 }
@@ -269,16 +271,35 @@ app.post('/api/players', async (req, res) => {
 app.delete('/api/players/:name', async (req, res) => {
     try {
         const playerName = req.params.name;
+        const isAdmin = req.query.admin === 'true';
+        
+        // Get session if provided
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        let userId = null;
+        
+        if (token) {
+            const session = await getSession(token);
+            if (session) {
+                userId = session.user.id;
+            }
+        }
+        
         const data = await fs.readFile(DATA_FILE, 'utf8');
         const players = JSON.parse(data);
         
-        if (players[playerName]) {
-            delete players[playerName];
-            await fs.writeFile(DATA_FILE, JSON.stringify(players, null, 2), 'utf8');
-            res.json({ success: true, message: `Player ${playerName} deleted` });
-        } else {
-            res.status(404).json({ error: 'Player not found' });
+        if (!players[playerName]) {
+            return res.status(404).json({ error: 'Player not found' });
         }
+        
+        // Check ownership (allow if admin, no owner, or if user owns it)
+        const player = players[playerName];
+        if (!isAdmin && player.ownerId && player.ownerId !== userId) {
+            return res.status(403).json({ error: 'You can only delete your own players' });
+        }
+        
+        delete players[playerName];
+        await fs.writeFile(DATA_FILE, JSON.stringify(players, null, 2), 'utf8');
+        res.json({ success: true, message: `Player ${playerName} deleted` });
     } catch (error) {
         console.error('Error deleting player:', error);
         res.status(500).json({ error: 'Failed to delete player' });
