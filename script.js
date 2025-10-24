@@ -318,7 +318,7 @@ function loadPlayerData(name) {
     currentPlayer = player;
 }
 
-function deletePlayer(name) {
+async function deletePlayer(name) {
     if (!isAdminMode()) {
         alert('Admin access required to delete players.');
         return;
@@ -328,19 +328,29 @@ function deletePlayer(name) {
         return;
     }
     
-    const players = loadPlayers();
-    delete players[name];
-    savePlayers(players);
-    
-    // Also delete from server
-    saveToServer();
-    
-    if (currentPlayer && currentPlayer.name === name) {
-        clearForm();
+    try {
+        // Delete from server using DELETE endpoint
+        const response = await fetch(`${API_URL}/api/players/${encodeURIComponent(name)}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to delete player from server');
+        }
+        
+        // Delete from local cache
+        delete playersCache[name];
+        
+        if (currentPlayer && currentPlayer.name === name) {
+            clearForm();
+        }
+        
+        renderPlayersList();
+        calculateBestTimes();
+    } catch (error) {
+        console.error('Error deleting player:', error);
+        alert('Failed to delete player. Please try again.');
     }
-    
-    renderPlayersList();
-    calculateBestTimes();
 }
 
 function clearForm() {
