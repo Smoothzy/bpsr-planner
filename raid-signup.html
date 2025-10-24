@@ -424,11 +424,66 @@
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         const API_URL = isLocalhost ? 'http://localhost:3000' : 'https://web-production-af38.up.railway.app';
         const ADMIN_KEY = 'bond';
+        const SESSION_KEY = 'bpsr_session_token'; // Discord session token
         let playersCache = {};
         let raidsCache = [];
         let selectedRaidId = null;
         let selectedPlayerName = null;
         let selectedTimezone = 'auto';
+        let currentUser = null; // Discord user info
+
+        // Check if admin mode is enabled
+        function isAdminMode() {
+            return localStorage.getItem('adminKey') === ADMIN_KEY;
+        }
+
+        // Discord Authentication
+        async function checkAuth() {
+            const token = localStorage.getItem(SESSION_KEY);
+            if (!token) {
+                currentUser = null;
+                return false;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/api/auth/user`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    currentUser = await response.json();
+                    return true;
+                } else {
+                    localStorage.removeItem(SESSION_KEY);
+                    currentUser = null;
+                    return false;
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                return false;
+            }
+        }
+
+        // Check if user can edit/remove this player
+        function canEditPlayer(playerName) {
+            // Admin can edit anyone
+            if (isAdminMode()) return true;
+            
+            // Not logged in - can't edit
+            if (!currentUser) return false;
+            
+            // Check if player has ownerId and if it matches current user
+            const player = playersCache[playerName];
+            if (!player) return false;
+            
+            // If player has no owner, anyone logged in can claim it
+            if (!player.ownerId) return true;
+            
+            // Check if this user owns the player
+            return player.ownerId === currentUser.id;
+        }
 
         // Timezone conversion functions (from main planner)
         function getServerHourFromLocalHour(localHour, localMinute, dateString) {
@@ -492,10 +547,6 @@
             } else {
                 preview.textContent = '--:--';
             }
-        }
-
-        function isAdminMode() {
-            return localStorage.getItem('adminKey') === ADMIN_KEY;
         }
 
         async function loadPlayers() {
@@ -643,8 +694,11 @@
         }
 
         function canRemoveSignup(raidId, playerName) {
-            // Users can remove their own signups
-            return Object.keys(playersCache).includes(playerName);
+            // Admin can remove anyone
+            if (isAdminMode()) return true;
+            
+            // Users can only remove their own players
+            return canEditPlayer(playerName);
         }
 
         function openSignupModal(raidId) {
@@ -893,6 +947,9 @@
 
         // Initialize
         async function init() {
+            // Check Discord authentication
+            await checkAuth();
+            
             // Load saved timezone preference
             const savedTimezone = localStorage.getItem('selectedTimezone');
             if (savedTimezone) {
