@@ -6,7 +6,7 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0-23 hours
 const STORAGE_KEY = 'bpsr_players';
 const ADMIN_KEY = 'bond'; // Secret admin key
-const MY_PLAYERS_KEY = 'bpsr_my_players'; // Track which players this browser created
+const SESSION_KEY = 'bpsr_session_token'; // Discord session token
 // Auto-detect API URL based on environment
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const API_URL = isLocalhost ? 'http://localhost:3000' : 'https://web-production-af38.up.railway.app';
@@ -20,6 +20,7 @@ let currentPlayer = null;
 let selectedTimezone = 'auto';
 let availabilityGrid = {};
 let playersCache = {}; // In-memory cache for player data (server is source of truth)
+let currentUser = null; // Discord user info
 
 // Drag selection state
 let isDragging = false;
@@ -30,31 +31,102 @@ function isAdminMode() {
     return localStorage.getItem('adminKey') === ADMIN_KEY;
 }
 
-// Player ownership management
-function getMyPlayers() {
-    const myPlayers = localStorage.getItem(MY_PLAYERS_KEY);
-    return myPlayers ? JSON.parse(myPlayers) : [];
-}
-
-function addMyPlayer(playerName) {
-    const myPlayers = getMyPlayers();
-    if (!myPlayers.includes(playerName)) {
-        myPlayers.push(playerName);
-        localStorage.setItem(MY_PLAYERS_KEY, JSON.stringify(myPlayers));
+// Discord Authentication
+async function checkAuth() {
+    const token = localStorage.getItem(SESSION_KEY);
+    if (!token) {
+        currentUser = null;
+        updateAuthUI();
+        return false;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/api/auth/user`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            currentUser = await response.json();
+            updateAuthUI();
+            return true;
+        } else {
+            localStorage.removeItem(SESSION_KEY);
+            currentUser = null;
+            updateAuthUI();
+            return false;
+        }
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        return false;
     }
 }
 
-function removeMyPlayer(playerName) {
-    const myPlayers = getMyPlayers();
-    const filtered = myPlayers.filter(name => name !== playerName);
-    localStorage.setItem(MY_PLAYERS_KEY, JSON.stringify(filtered));
+function updateAuthUI() {
+    const authContainer = document.getElementById('auth-container');
+    if (!authContainer) return;
+    
+    if (currentUser) {
+        const avatarUrl = currentUser.avatar 
+            ? `https://cdn.discordapp.com/avatars/${currentUser.id}/${currentUser.avatar}.png`
+            : 'https://cdn.discordapp.com/embed/avatars/0.png';
+        
+        authContainer.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img src="${avatarUrl}" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid #e040fb;">
+                <span style="color: #e1bee7;">${currentUser.username}</span>
+                <button onclick="logout()" style="padding: 5px 10px; background: #6a1b9a; color: white; border: none; border-radius: 5px; cursor: pointer;">Logout</button>
+            </div>
+        `;
+    } else {
+        authContainer.innerHTML = `
+            <button onclick="loginWithDiscord()" style="padding: 8px 16px; background: #5865F2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                Login with Discord
+            </button>
+        `;
+    }
 }
 
+function loginWithDiscord() {
+    window.location.href = `${API_URL}/auth/discord`;
+}
+
+async function logout() {
+    const token = localStorage.getItem(SESSION_KEY);
+    if (token) {
+        try {
+            await fetch(`${API_URL}/api/auth/logout`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    }
+    localStorage.removeItem(SESSION_KEY);
+    currentUser = null;
+    updateAuthUI();
+}
+
+// Player ownership management (now uses Discord)
 function canEditPlayer(playerName) {
-    // Admins can edit anyone
+    // Admin can edit anyone
     if (isAdminMode()) return true;
-    // Users can only edit their own players
-    return getMyPlayers().includes(playerName);
+    
+    // Not logged in - can't edit
+    if (!currentUser) return false;
+    
+    // Check if player has ownerId and if it matches current user
+    const player = playersCache[playerName];
+    if (!player) return false;
+    
+    // If player has no owner, anyone can claim it (migration from old system)
+    if (!player.ownerId) return true;
+    
+    return player.ownerId === currentUser.id;
 }
 
 // Initialize availability grid
@@ -298,6 +370,12 @@ function saveCurrentPlayer() {
         return;
     }
     
+    // Require login to create/edit players
+    if (!currentUser && !isAdminMode()) {
+        alert('Please login with Discord to create or edit players!');
+        return;
+    }
+    
     // Check if editing existing player
     const players = loadPlayers();
     const isNewPlayer = !players[name];
@@ -325,15 +403,11 @@ function saveCurrentPlayer() {
         class: playerClass,
         gearScore: parseInt(gearScore),
         availability: availabilityData,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
+        ownerId: currentUser ? currentUser.id : undefined
     };
     
     savePlayers(players);
-    
-    // Track ownership for new players
-    if (isNewPlayer) {
-        addMyPlayer(name);
-    }
     
     // Also save to server
     saveToServer();
@@ -892,12 +966,19 @@ async function saveToServer() {
     
     try {
         const players = loadPlayers();
+        const token = localStorage.getItem(SESSION_KEY);
+        
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
         
         const response = await fetch(`${API_URL}/api/players`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: headers,
             body: JSON.stringify(players)
         });
         
@@ -989,7 +1070,19 @@ document.getElementById('syncSave').addEventListener('click', saveToServer);
 // Players can manually reload using the "Reload from Server" button
 
 // Initialize
-function init() {
+async function init() {
+    // Check for OAuth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionToken = urlParams.get('session');
+    if (sessionToken) {
+        localStorage.setItem(SESSION_KEY, sessionToken);
+        // Remove session param from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    // Check authentication
+    await checkAuth();
+    
     initializeAvailabilityGrid();
     renderTimeLabels();
     renderAvailabilityGrid();
@@ -1029,8 +1122,8 @@ function init() {
     }
     
     // Check for edit parameter in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const editPlayer = urlParams.get('edit');
+    const editParams = new URLSearchParams(window.location.search);
+    const editPlayer = editParams.get('edit');
     if (editPlayer) {
         loadPlayerData(editPlayer);
         // Scroll to the form
