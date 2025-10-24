@@ -6,6 +6,7 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0-23 hours
 const STORAGE_KEY = 'bpsr_players';
 const ADMIN_KEY = 'bond'; // Secret admin key
+const MY_PLAYERS_KEY = 'bpsr_my_players'; // Track which players this browser created
 // Auto-detect API URL based on environment
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const API_URL = isLocalhost ? 'http://localhost:3000' : 'https://web-production-af38.up.railway.app';
@@ -27,6 +28,33 @@ let dragMode = null; // 'select' or 'deselect'
 // Check if admin mode is enabled
 function isAdminMode() {
     return localStorage.getItem('adminKey') === ADMIN_KEY;
+}
+
+// Player ownership management
+function getMyPlayers() {
+    const myPlayers = localStorage.getItem(MY_PLAYERS_KEY);
+    return myPlayers ? JSON.parse(myPlayers) : [];
+}
+
+function addMyPlayer(playerName) {
+    const myPlayers = getMyPlayers();
+    if (!myPlayers.includes(playerName)) {
+        myPlayers.push(playerName);
+        localStorage.setItem(MY_PLAYERS_KEY, JSON.stringify(myPlayers));
+    }
+}
+
+function removeMyPlayer(playerName) {
+    const myPlayers = getMyPlayers();
+    const filtered = myPlayers.filter(name => name !== playerName);
+    localStorage.setItem(MY_PLAYERS_KEY, JSON.stringify(filtered));
+}
+
+function canEditPlayer(playerName) {
+    // Admins can edit anyone
+    if (isAdminMode()) return true;
+    // Users can only edit their own players
+    return getMyPlayers().includes(playerName);
 }
 
 // Initialize availability grid
@@ -270,13 +298,28 @@ function saveCurrentPlayer() {
         return;
     }
     
+    // Check if editing existing player
+    const players = loadPlayers();
+    const isNewPlayer = !players[name];
+    const isEditing = currentPlayer && currentPlayer.name === name;
+    
+    // If editing an existing player (not creating new), check permission
+    if (!isNewPlayer && !isEditing) {
+        alert('A player with this name already exists!');
+        return;
+    }
+    
+    if (isEditing && !canEditPlayer(name)) {
+        alert('You can only edit your own players! Admins can edit anyone.');
+        return;
+    }
+    
     // Convert availability Set to Array for storage
     const availabilityData = {};
     Object.keys(availabilityGrid).forEach(day => {
         availabilityData[day] = Array.from(availabilityGrid[day]);
     });
     
-    const players = loadPlayers();
     players[name] = {
         name,
         class: playerClass,
@@ -287,6 +330,11 @@ function saveCurrentPlayer() {
     
     savePlayers(players);
     
+    // Track ownership for new players
+    if (isNewPlayer) {
+        addMyPlayer(name);
+    }
+    
     // Also save to server
     saveToServer();
     
@@ -296,6 +344,12 @@ function saveCurrentPlayer() {
 }
 
 function loadPlayerData(name) {
+    // Check permission
+    if (!canEditPlayer(name)) {
+        alert('You can only edit your own players! Admins can edit anyone.');
+        return;
+    }
+    
     const players = loadPlayers();
     const player = players[name];
     
@@ -340,6 +394,9 @@ async function deletePlayer(name) {
         
         // Delete from local cache
         delete playersCache[name];
+        
+        // Remove ownership tracking
+        removeMyPlayer(name);
         
         if (currentPlayer && currentPlayer.name === name) {
             clearForm();
@@ -540,7 +597,7 @@ function renderPlayersList() {
                 ${generateDetailedAvailability(player.availability)}
             </div>
             <div class="player-card-actions">
-                <button class="btn-edit" data-player-name="${player.name.replace(/"/g, '&quot;')}">✏️ Edit</button>
+                ${canEditPlayer(player.name) ? `<button class="btn-edit" data-player-name="${player.name.replace(/"/g, '&quot;')}">✏️ Edit</button>` : ''}
                 ${isAdminMode() ? `<button class="btn-delete" data-player-name="${player.name.replace(/"/g, '&quot;')}">🗑️ Delete</button>` : ''}
                 <button class="btn-view" data-player-name="${player.name.replace(/"/g, '&quot;')}">👁️ Details</button>
             </div>
