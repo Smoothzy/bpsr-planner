@@ -742,7 +742,7 @@
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
             modal.innerHTML = `
-                <div class="modal-popup" style="max-width: 600px;">
+                <div class="modal-popup" style="max-width: 800px; max-height: 85vh;">
                     <button class="modal-close-btn" onclick="this.closest('.modal-overlay').remove()">×</button>
                     <h3 style="color: var(--text-primary); margin-bottom: 20px;">
                         📅 ${player.name}'s Weekly Schedule
@@ -768,7 +768,7 @@
                     </div>
 
                     <h4 style="color: var(--text-primary); margin-bottom: 15px; font-size: 1.1em;">Detailed Availability:</h4>
-                    <div style="max-height: 400px; overflow-y: auto; padding-right: 10px; scrollbar-width: thin; scrollbar-color: var(--accent-primary) var(--bg-secondary);">
+                    <div style="max-height: 50vh; overflow-y: auto; padding-right: 10px; scrollbar-width: thin; scrollbar-color: var(--accent-primary) var(--bg-secondary);">
                         ${scheduleHTML}
                     </div>
                     
