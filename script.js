@@ -136,71 +136,14 @@ function updatePlayerSelector() {
     const loadButton = document.getElementById('loadPlayer');
     const existingSelect = document.getElementById('playerNameSelect');
     
-    // Remove existing dropdown if present (to rebuild it with updated names)
+    // Remove dropdown if it exists - we're going back to input field only
     if (existingSelect) {
         existingSelect.remove();
     }
     
-    // Show input field by default (we'll hide it if we create a dropdown)
+    // Always show input field
     nameInput.style.display = 'inline-block';
-    
-    if (!currentUser) {
-        // Not logged in - show normal input
-        nameInput.style.display = 'inline-block';
-        loadButton.style.display = 'inline-block';
-        return;
-    }
-    
-    const ownedPlayers = Object.keys(playersCache).filter(name => canEditPlayer(name));
-    
-    if (ownedPlayers.length === 0) {
-        // No owned players - show input for creating new player
-        nameInput.style.display = 'inline-block';
-        loadButton.style.display = 'none';
-        nameInput.value = '';
-        nameInput.placeholder = 'Enter your character name';
-        return;
-    }
-    
-    // Has owned players - create dropdown
-    const select = document.createElement('select');
-    select.id = 'playerNameSelect';
-    select.style.cssText = nameInput.style.cssText;
-    
-    ownedPlayers.forEach(playerName => {
-        const option = document.createElement('option');
-        option.value = playerName;
-        option.textContent = playerName;
-        if (currentPlayer && currentPlayer.name === playerName) {
-            option.selected = true;
-        }
-        select.appendChild(option);
-    });
-    
-    // Add option to create new player
-    const newOption = document.createElement('option');
-    newOption.value = '__new__';
-    newOption.textContent = '+ Create New Player';
-    select.appendChild(newOption);
-    
-    select.addEventListener('change', (e) => {
-        if (e.target.value === '__new__') {
-            // Clear form for new player
-            clearForm();
-            nameInput.value = '';
-            nameInput.style.display = 'inline-block';
-            select.style.display = 'none';
-            loadButton.style.display = 'none';
-        } else {
-            loadPlayerData(e.target.value);
-        }
-    });
-    
-    // Hide input and insert the new dropdown
-    nameInput.style.display = 'none';
-    nameInput.parentNode.insertBefore(select, nameInput);
-    
-    loadButton.style.display = 'none';
+    loadButton.style.display = 'inline-block';
 }
 
 // Initialize availability grid
@@ -453,17 +396,19 @@ function saveCurrentPlayer() {
     
     // Check if editing existing player
     const players = loadPlayers();
-    const isNewPlayer = !players[name];
-    const isEditing = currentPlayer && currentPlayer.name === name;
+    const originalName = currentPlayer ? currentPlayer.name : null;
+    const isEditing = originalName !== null;
+    const isRenaming = isEditing && originalName !== name;
     
-    // If editing an existing player (not creating new), check permission
-    if (!isNewPlayer && !isEditing) {
-        alert('A player with this name already exists!');
+    // Check permission to edit the original player
+    if (isEditing && !canEditPlayer(originalName)) {
+        alert('You can only edit your own players! Admins can edit anyone.');
         return;
     }
     
-    if (isEditing && !canEditPlayer(name)) {
-        alert('You can only edit your own players! Admins can edit anyone.');
+    // If new name already exists and it's not the same player, reject
+    if (players[name] && originalName !== name) {
+        alert('A player with this name already exists!');
         return;
     }
     
@@ -473,14 +418,22 @@ function saveCurrentPlayer() {
         availabilityData[day] = Array.from(availabilityGrid[day]);
     });
     
-    // Determine ownerId: preserve existing owner, or set to current user if new/unclaimed
+    // Determine ownerId: preserve existing owner from original player, or set to current user if new
     let ownerId;
-    if (players[name] && players[name].ownerId) {
-        // Keep existing owner
+    if (isEditing && players[originalName] && players[originalName].ownerId) {
+        // Keep existing owner when editing
+        ownerId = players[originalName].ownerId;
+    } else if (players[name] && players[name].ownerId) {
+        // Keep existing owner if somehow already exists
         ownerId = players[name].ownerId;
     } else if (currentUser) {
         // Set current user as owner (new player or claiming unclaimed player)
         ownerId = currentUser.id;
+    }
+    
+    // If renaming, delete the old player entry
+    if (isRenaming) {
+        delete players[originalName];
     }
     
     players[name] = {
@@ -493,12 +446,16 @@ function saveCurrentPlayer() {
         ownerId: ownerId
     };
     
+    // Update currentPlayer to reflect the new/edited player
+    currentPlayer = players[name];
+    
     savePlayers(players);
     
     // Also save to server
     saveToServer();
     
-    alert(`Player ${name} saved successfully!`);
+    const action = isRenaming ? 'renamed and saved' : (isEditing ? 'updated' : 'created');
+    alert(`Player ${name} ${action} successfully!`);
     renderPlayersList();
     calculateBestTimes();
     updatePlayerSelector(); // Update dropdown with new/edited player name
