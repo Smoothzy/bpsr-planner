@@ -736,6 +736,7 @@
                                             </div>
                                             <div class="role-signups">
                                                 ${roleSignups.map(signup => {
+                                                    console.log('Signup data:', signup); // Debug
                                                     const guildDisplay = signup.guild ? `<div style="color: #ba68c8; font-size: 0.85em; margin-top: 2px;">Guild: ${signup.guild}</div>` : '';
                                                     return `
                                                     <div class="signup-item">
@@ -747,7 +748,6 @@
                                                                 ${guildDisplay}
                                                             </div>
                                                         </div>
-                                                        ${guildDisplay}
                                                         ${isAdminMode() || canRemoveSignup(raid.id, signup.playerName) ? 
                                                             `<button class="remove-btn" data-raid-id="${raid.id}" data-player-name="${signup.playerName.replace(/"/g, '&quot;')}">Remove</button>` : 
                                                             ''}
