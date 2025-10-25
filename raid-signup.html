@@ -230,6 +230,7 @@
             display: flex;
             flex-direction: column;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            overflow: visible;
         }
 
         .modal-header {
@@ -300,6 +301,12 @@
             margin: 10px 0;
             flex: 1;
             min-height: 200px;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+        }
+
+        .player-select-list::-webkit-scrollbar {
+            display: none; /* Chrome/Safari/Opera */
         }
 
         .player-select-item {
@@ -729,14 +736,15 @@
                                             </div>
                                             <div class="role-signups">
                                                 ${roleSignups.map(signup => {
-                                                    const guildDisplay = signup.guild ? `<span style="color: #ba68c8; font-weight: 600;"> • ${signup.guild}</span>` : '';
+                                                    const guildDisplay = signup.guild ? `<div style="color: #ba68c8; font-size: 0.85em; margin-top: 2px;">Guild: ${signup.guild}</div>` : '';
                                                     return `
                                                     <div class="signup-item">
                                                         <div class="signup-info">
                                                             <span class="signup-number">#${signup.index}</span>
                                                             <div>
-                                                                <div class="player-name">${signup.playerName}${guildDisplay}</div>
+                                                                <div class="player-name">${signup.playerName}</div>
                                                                 <div class="player-class">${signup.class} • ${signup.gearScore} GS</div>
+                                                                ${guildDisplay}
                                                             </div>
                                                         </div>
                                                         ${isAdminMode() || canRemoveSignup(raid.id, signup.playerName) ? 

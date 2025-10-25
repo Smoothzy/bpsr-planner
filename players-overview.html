@@ -217,6 +217,22 @@
         .nav-link.active {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
+
+        .btn-danger {
+            padding: 6px 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85em;
+            transition: background 0.2s;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
     </style>
 </head>
 <body>
@@ -308,6 +324,7 @@
                         <th>Weekly Availability</th>
                         <th>Most Active Day</th>
                         <th>Last Updated</th>
+                        <th id="actionsHeader" style="display: none;">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="playersTableBody">
@@ -493,7 +510,7 @@
             if (playerNames.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="9" style="text-align: center; padding: 60px; color: #666;">
+                        <td colspan="10" style="text-align: center; padding: 60px; color: #666;">
                             <h3 style="margin-bottom: 15px;">No players found</h3>
                             <p style="margin-bottom: 20px;">Add players in the main planner or adjust your filters.</p>
                             <a href="index.html" style="display: inline-block; padding: 12px 24px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; font-weight: 600;">
@@ -545,6 +562,10 @@
                 heatmapHTML += '</div>';
 
                 const row = document.createElement('tr');
+                const deleteButton = isAdminMode() 
+                    ? `<td style="display: ${isAdminMode() ? 'table-cell' : 'none'};"><button class="btn-danger" onclick="deletePlayer('${player.name.replace(/'/g, "\\'")}')">Delete</button></td>`
+                    : '';
+                
                 row.innerHTML = `
                     <td><strong>${player.name}</strong></td>
                     <td><span class="class-badge">${player.class}</span></td>
@@ -554,9 +575,16 @@
                     <td>${heatmapHTML}</td>
                     <td>${mostActiveDay} (${dayHours[mostActiveDay]}h)</td>
                     <td>${lastUpdated}</td>
+                    ${deleteButton}
                 `;
                 tbody.appendChild(row);
             });
+            
+            // Show/hide actions column header based on admin mode
+            const actionsHeader = document.getElementById('actionsHeader');
+            if (actionsHeader) {
+                actionsHeader.style.display = isAdminMode() ? 'table-cell' : 'none';
+            }
         }
 
         function applyFilters() {
@@ -740,7 +768,7 @@
                     </div>
 
                     <h4 style="color: var(--text-primary); margin-bottom: 15px; font-size: 1.1em;">Detailed Availability:</h4>
-                    <div style="max-height: 400px; overflow-y: auto; padding-right: 10px;">
+                    <div style="max-height: 400px; overflow-y: auto; padding-right: 10px; scrollbar-width: thin; scrollbar-color: var(--accent-primary) var(--bg-secondary);">
                         ${scheduleHTML}
                     </div>
                     
