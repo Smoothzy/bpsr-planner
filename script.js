@@ -290,6 +290,30 @@ function updateTimeDisplays() {
     });
     document.getElementById('serverTime').textContent = serverTimeStr;
     
+    // Calculate daily reset time (00:00 ST = 07:00 UTC)
+    // Create a date for today at 07:00 UTC (which is 00:00 server time)
+    const resetTimeUTC = new Date();
+    resetTimeUTC.setUTCHours(7, 0, 0, 0);
+    
+    // If we've already passed today's reset, show tomorrow's reset
+    if (now.getTime() > resetTimeUTC.getTime()) {
+        resetTimeUTC.setDate(resetTimeUTC.getDate() + 1);
+    }
+    
+    // Convert to user's timezone
+    const userTimezone = selectedTimezone === 'auto' 
+        ? Intl.DateTimeFormat().resolvedOptions().timeZone 
+        : selectedTimezone;
+    
+    const resetTimeStr = resetTimeUTC.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: userTimezone
+    });
+    
+    document.getElementById('dailyResetLabel').textContent = `Daily reset: ${resetTimeStr}`;
+    
     // Update the grid tooltips to show local time equivalents
     updateGridTooltips();
     updateConversionExamples();
