@@ -312,7 +312,7 @@ function updateTimeDisplays() {
         timeZone: userTimezone
     });
     
-    document.getElementById('dailyResetLabel').textContent = `Daily reset: ${resetTimeStr}`;
+    document.getElementById('dailyResetLabel').textContent = `Daily reset: ${resetTimeStr} (selected timezone)`;
     
     // Update the grid tooltips to show local time equivalents
     updateGridTooltips();
