@@ -27,10 +27,11 @@
 
         .raid-card {
             background: var(--card-bg);
-            border-radius: 10px;
-            padding: 25px;
-            box-shadow: 0 2px 10px var(--shadow);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 16px var(--shadow);
             border: 2px solid var(--border-color);
+            margin-bottom: 25px;
         }
 
         .raid-card.scheduled {
@@ -41,25 +42,25 @@
             display: flex;
             justify-content: space-between;
             align-items: start;
-            margin-bottom: 15px;
+            margin-bottom: 25px;
         }
 
         .raid-title {
-            font-size: 1.3em;
+            font-size: 1.6em;
             font-weight: 700;
             color: var(--text-primary);
-            margin-bottom: 5px;
+            margin-bottom: 8px;
         }
 
         .raid-time {
             color: var(--text-secondary);
-            font-size: 0.9em;
+            font-size: 1em;
         }
 
         .raid-status {
-            padding: 5px 12px;
+            padding: 8px 16px;
             border-radius: 5px;
-            font-size: 0.85em;
+            font-size: 1em;
             font-weight: 600;
         }
 
@@ -78,52 +79,87 @@
             color: #721c24;
         }
 
-        .signup-list {
-            margin: 15px 0;
-            min-height: 100px;
+        .role-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .role-section {
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid var(--border-color);
+        }
+
+        .role-header {
+            padding: 12px 20px;
+            font-weight: 700;
+            font-size: 1.1em;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .role-count {
+            background: rgba(255, 255, 255, 0.25);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.95em;
+        }
+
+        .role-signups {
+            background: var(--bg-secondary);
         }
 
         .signup-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px;
-            margin: 5px 0;
-            background: var(--bg-secondary);
-            border-radius: 5px;
-            border-left: 3px solid var(--accent-primary);
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .signup-item:last-child {
+            border-bottom: none;
         }
 
         .signup-info {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
         }
 
         .signup-number {
             font-weight: 700;
             color: var(--accent-primary);
-            min-width: 30px;
+            min-width: 35px;
+            font-size: 1.1em;
         }
 
         .player-name {
             font-weight: 600;
             color: var(--text-primary);
+            font-size: 1.05em;
         }
 
         .player-class {
             color: var(--text-secondary);
-            font-size: 0.9em;
+            font-size: 0.95em;
+            margin-top: 3px;
         }
 
         .remove-btn {
-            padding: 5px 10px;
+            padding: 8px 16px;
             background: #dc3545;
             color: white;
             border: none;
-            border-radius: 3px;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 0.85em;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: background 0.2s;
         }
 
         .remove-btn:hover {
@@ -131,9 +167,9 @@
         }
 
         .signup-actions {
-            margin-top: 15px;
+            margin-top: 20px;
             display: flex;
-            gap: 10px;
+            gap: 12px;
             flex-wrap: wrap;
         }
 
@@ -484,6 +520,28 @@
             // Check if this user owns the player
             return player.ownerId === currentUser.id;
         }
+        
+        // Get role from class
+        function getRole(className) {
+            const dps = ['Moonstrike', 'Iaido', 'Frostbeam', 'Icicle', 'Skyward', 'Vanguard', 'Wildpack', 'Falconry'];
+            const support = ['Lifebind', 'Smite', 'Dissonance', 'Concerto'];
+            const tank = ['Block', 'Earthfort', 'Shield', 'Recovery'];
+            
+            if (dps.includes(className)) return 'DPS';
+            if (support.includes(className)) return 'Support';
+            if (tank.includes(className)) return 'Tank';
+            return 'Unknown';
+        }
+        
+        // Get role color
+        function getRoleColor(role) {
+            switch(role) {
+                case 'DPS': return '#e74c3c';
+                case 'Tank': return '#3498db';
+                case 'Support': return '#2ecc71';
+                default: return '#95a5a6';
+            }
+        }
 
         // Timezone conversion functions (from main planner)
         function getServerHourFromLocalHour(localHour, localMinute, dateString) {
@@ -614,6 +672,18 @@
                 const status = signupCount >= 20 ? 'full' : 'open';
                 const statusText = signupCount >= 20 ? 'Full' : `${signupCount}/20`;
                 
+                // Organize signups by role
+                const signupsByRole = {
+                    'Tank': [],
+                    'DPS': [],
+                    'Support': []
+                };
+                
+                raid.signups.forEach((signup, index) => {
+                    const role = getRole(signup.class);
+                    signupsByRole[role].push({ ...signup, index: index + 1 });
+                });
+                
                 // Parse the stored server time and convert to user's timezone
                 const date = new Date(raid.dateTime);
                 
@@ -643,25 +713,45 @@
                             <div class="raid-status ${status}">${statusText}</div>
                         </div>
                         
-                        <div class="signup-list">
-                            ${raid.signups.length === 0 ? 
-                                '<div style="text-align: center; color: var(--text-secondary); padding: 20px;">No signups yet. Be the first!</div>' :
-                                raid.signups.map((signup, index) => `
-                                    <div class="signup-item">
-                                        <div class="signup-info">
-                                            <span class="signup-number">#${index + 1}</span>
-                                            <div>
-                                                <div class="player-name">${signup.playerName}</div>
-                                                <div class="player-class">${signup.class} • ${signup.gearScore} GS</div>
+                        ${raid.signups.length === 0 ? 
+                            '<div style="text-align: center; color: var(--text-secondary); padding: 30px; font-size: 16px;">No signups yet. Be the first!</div>' :
+                            `
+                            <div class="role-sections">
+                                ${['Tank', 'DPS', 'Support'].map(role => {
+                                    const roleSignups = signupsByRole[role];
+                                    if (roleSignups.length === 0) return '';
+                                    
+                                    return `
+                                        <div class="role-section">
+                                            <div class="role-header" style="background: ${getRoleColor(role)};">
+                                                <span>${role}</span>
+                                                <span class="role-count">${roleSignups.length}</span>
+                                            </div>
+                                            <div class="role-signups">
+                                                ${roleSignups.map(signup => {
+                                                    const guildDisplay = signup.guild ? `<span style="color: #ba68c8; font-weight: 600;"> • ${signup.guild}</span>` : '';
+                                                    return `
+                                                    <div class="signup-item">
+                                                        <div class="signup-info">
+                                                            <span class="signup-number">#${signup.index}</span>
+                                                            <div>
+                                                                <div class="player-name">${signup.playerName}${guildDisplay}</div>
+                                                                <div class="player-class">${signup.class} • ${signup.gearScore} GS</div>
+                                                            </div>
+                                                        </div>
+                                                        ${isAdminMode() || canRemoveSignup(raid.id, signup.playerName) ? 
+                                                            `<button class="remove-btn" data-raid-id="${raid.id}" data-player-name="${signup.playerName.replace(/"/g, '&quot;')}">Remove</button>` : 
+                                                            ''}
+                                                    </div>
+                                                    `;
+                                                }).join('')}
                                             </div>
                                         </div>
-                                        ${isAdminMode() || canRemoveSignup(raid.id, signup.playerName) ? 
-                                            `<button class="remove-btn" data-raid-id="${raid.id}" data-player-name="${signup.playerName.replace(/"/g, '&quot;')}">Remove</button>` : 
-                                            ''}
-                                    </div>
-                                `).join('')
-                            }
-                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                            `
+                        }
                         
                         <div class="signup-actions">
                             <button class="btn-primary signup-btn" data-raid-id="${raid.id}">Sign Up</button>
@@ -727,16 +817,19 @@
                 quickSelect.innerHTML = '<option value="">-- Choose a player --</option>' + 
                     playerNames.map(name => {
                         const player = playersCache[name];
-                        return `<option value="${name}">${player.name} (${player.class})</option>`;
+                        const guildTag = player.guild ? ` [${player.guild}]` : '';
+                        return `<option value="${name}">${player.name} (${player.class})${guildTag}</option>`;
                     }).join('');
                 
                 // Populate player list
                 playersList.innerHTML = playerNames.map(name => {
                     const player = playersCache[name];
+                    const guildDisplay = player.guild ? `<div style="color: #ba68c8; font-size: 0.85em;">Guild: ${player.guild}</div>` : '';
                     return `
                         <div class="player-select-item" data-player-name="${name}" data-player-class="${player.class}" onclick="selectPlayer('${name}')">
                             <div class="player-name">${player.name}</div>
                             <div class="player-class">${player.class} • ${player.gearScore} GS</div>
+                            ${guildDisplay}
                         </div>
                     `;
                 }).join('');
@@ -798,6 +891,7 @@
                 playerName: player.name,
                 class: player.class,
                 gearScore: player.gearScore,
+                guild: player.guild || '',
                 signupTime: new Date().toISOString()
             });
 

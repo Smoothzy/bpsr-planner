@@ -421,6 +421,7 @@ function saveCurrentPlayer() {
     const name = document.getElementById('playerName').value.trim();
     const playerClass = document.getElementById('playerClass').value;
     const gearScore = document.getElementById('gearScore').value;
+    const guild = document.getElementById('guild').value.trim();
     
     if (!name) {
         alert('Please enter a player name!');
@@ -479,6 +480,7 @@ function saveCurrentPlayer() {
         name,
         class: playerClass,
         gearScore: parseInt(gearScore),
+        guild: guild || '',
         availability: availabilityData,
         lastUpdated: new Date().toISOString(),
         ownerId: ownerId
@@ -512,6 +514,7 @@ function loadPlayerData(name) {
     document.getElementById('playerName').value = player.name;
     document.getElementById('playerClass').value = player.class;
     document.getElementById('gearScore').value = player.gearScore;
+    document.getElementById('guild').value = player.guild || '';
     
     // Load availability
     initializeAvailabilityGrid();
@@ -575,6 +578,7 @@ function clearForm() {
     document.getElementById('playerName').value = '';
     document.getElementById('playerClass').value = '';
     document.getElementById('gearScore').value = '';
+    document.getElementById('guild').value = '';
     initializeAvailabilityGrid();
     renderAvailabilityGrid();
     currentPlayer = null;

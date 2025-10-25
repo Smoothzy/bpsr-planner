@@ -281,6 +281,12 @@
                 <input type="text" id="searchName" placeholder="Player name...">
             </div>
             <div class="filter-group">
+                <label for="filterGuild">Guild:</label>
+                <select id="filterGuild">
+                    <option value="">All Guilds</option>
+                </select>
+            </div>
+            <div class="filter-group">
                 <label>&nbsp;</label>
                 <button class="btn-primary" onclick="applyFilters()">Apply Filters</button>
             </div>
@@ -296,6 +302,7 @@
                     <tr>
                         <th>Player Name</th>
                         <th>Class</th>
+                        <th>Guild</th>
                         <th>Gear Score</th>
                         <th>Total Hours Available</th>
                         <th>Weekly Availability</th>
@@ -388,12 +395,34 @@
                 const players = await response.json();
                 playersCache = players;
                 console.log('Loaded players from server:', players);
+                populateGuildFilter();
                 renderStats();
                 renderPlayersTable();
             } catch (error) {
                 console.error('Error loading from server:', error);
                 alert('Could not load player data from server. Please refresh the page.');
             }
+        }
+
+        function populateGuildFilter() {
+            const players = loadPlayers();
+            const guilds = new Set();
+            
+            Object.values(players).forEach(player => {
+                if (player.guild && player.guild.trim()) {
+                    guilds.add(player.guild.trim());
+                }
+            });
+            
+            const filterGuild = document.getElementById('filterGuild');
+            filterGuild.innerHTML = '<option value="">All Guilds</option>';
+            
+            Array.from(guilds).sort().forEach(guild => {
+                const option = document.createElement('option');
+                option.value = guild;
+                option.textContent = guild;
+                filterGuild.appendChild(option);
+            });
         }
 
         function renderStats() {
@@ -519,6 +548,7 @@
                 row.innerHTML = `
                     <td><strong>${player.name}</strong></td>
                     <td><span class="class-badge">${player.class}</span></td>
+                    <td>${player.guild || '<span style="color: #999;">No Guild</span>'}</td>
                     <td><strong>${player.gearScore}</strong></td>
                     <td>${totalHours} hours</td>
                     <td>${heatmapHTML}</td>
@@ -535,6 +565,7 @@
             const filterMinGS = parseInt(document.getElementById('filterMinGS').value) || 0;
             const filterDay = document.getElementById('filterDay').value;
             const searchName = document.getElementById('searchName').value.toLowerCase();
+            const filterGuild = document.getElementById('filterGuild').value;
 
             const filtered = {};
 
@@ -546,6 +577,7 @@
                 if (player.gearScore < filterMinGS) return;
                 if (filterDay && (!player.availability[filterDay] || player.availability[filterDay].length === 0)) return;
                 if (searchName && !player.name.toLowerCase().includes(searchName)) return;
+                if (filterGuild && (player.guild || '').toLowerCase() !== filterGuild.toLowerCase()) return;
 
                 filtered[name] = player;
             });
@@ -558,6 +590,7 @@
             document.getElementById('filterMinGS').value = '';
             document.getElementById('filterDay').value = '';
             document.getElementById('searchName').value = '';
+            document.getElementById('filterGuild').value = '';
             renderPlayersTable();
         }
 
