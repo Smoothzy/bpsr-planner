@@ -134,6 +134,12 @@ function canEditPlayer(playerName) {
 function updatePlayerSelector() {
     const nameInput = document.getElementById('playerName');
     const loadButton = document.getElementById('loadPlayer');
+    const existingSelect = document.getElementById('playerNameSelect');
+    
+    // Remove existing dropdown if present (to rebuild it with updated names)
+    if (existingSelect) {
+        existingSelect.remove();
+    }
     
     if (!currentUser) {
         // Not logged in - show normal input
@@ -153,7 +159,7 @@ function updatePlayerSelector() {
         return;
     }
     
-    // Has owned players - replace input with dropdown
+    // Has owned players - create dropdown
     const select = document.createElement('select');
     select.id = 'playerNameSelect';
     select.style.cssText = nameInput.style.cssText;
@@ -187,11 +193,9 @@ function updatePlayerSelector() {
         }
     });
     
-    // Replace input with select if not already done
-    if (!document.getElementById('playerNameSelect')) {
-        nameInput.style.display = 'none';
-        nameInput.parentNode.insertBefore(select, nameInput);
-    }
+    // Insert the new dropdown
+    nameInput.style.display = 'none';
+    nameInput.parentNode.insertBefore(select, nameInput);
     
     loadButton.style.display = 'none';
 }
@@ -494,6 +498,7 @@ function saveCurrentPlayer() {
     alert(`Player ${name} saved successfully!`);
     renderPlayersList();
     calculateBestTimes();
+    updatePlayerSelector(); // Update dropdown with new/edited player name
 }
 
 function loadPlayerData(name) {
@@ -568,6 +573,7 @@ async function deletePlayer(name) {
         
         renderPlayersList();
         calculateBestTimes();
+        updatePlayerSelector(); // Update dropdown after deletion
     } catch (error) {
         console.error('Error deleting player:', error);
         alert(`Failed to delete player: ${error.message}`);
