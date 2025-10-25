@@ -141,6 +141,9 @@ function updatePlayerSelector() {
         existingSelect.remove();
     }
     
+    // Show input field by default (we'll hide it if we create a dropdown)
+    nameInput.style.display = 'inline-block';
+    
     if (!currentUser) {
         // Not logged in - show normal input
         nameInput.style.display = 'inline-block';
@@ -193,7 +196,7 @@ function updatePlayerSelector() {
         }
     });
     
-    // Insert the new dropdown
+    // Hide input and insert the new dropdown
     nameInput.style.display = 'none';
     nameInput.parentNode.insertBefore(select, nameInput);
     
